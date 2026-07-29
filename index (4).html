@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lottery Game &mdash; Wheel Spin</title>
+<meta name="description" content="An interactive behavioral economics lottery task measuring loss aversion and risk-taking through a spinning wheel.">
+
+<!-- Google Fonts: Inter as the fallback for -apple-system — on Apple devices
+     the page renders in real SF Pro; everywhere else it renders in Inter,
+     the closest open match. One typeface throughout, varied only by weight. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css">
+<link rel="icon" type="image/png" href="akal-academy-logo.png">
+</head>
+<body>
+
+<!-- Skip link for keyboard / screen-reader users -->
+<a class="skip-link" href="#mainRegion">Skip to content</a>
+
+<div id="app">
+
+  <!-- ============================= HEADER ============================= -->
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="false">
+        <img src="akal-academy-logo.png" alt="Akal Academy logo" class="brand-logo">
+      </span>
+      <span class="brand-text">Akal Academy &mdash;  Behavioral Economics</span>
+    </div>
+
+    <div class="header-controls">
+      <button id="soundToggle" class="icon-button" type="button" aria-pressed="true" aria-label="Mute sound effects">
+        <span class="icon-sound-on" aria-hidden="true">&#128266;</span>
+        <span class="icon-sound-off" aria-hidden="true" hidden>&#128263;</span>
+      </button>
+      <button id="themeToggle" class="icon-button" type="button" aria-pressed="false" aria-label="Switch to dark mode">
+        <span class="icon-theme-light" aria-hidden="true">&#9728;</span>
+        <span class="icon-theme-dark" aria-hidden="true" hidden>&#9789;</span>
+      </button>
+    </div>
+  </header>
+
+  <main id="mainRegion">
+
+    <!-- ========================= WELCOME SCREEN ========================= -->
+    <section id="welcomeScreen" class="screen screen-wide is-active" aria-labelledby="welcomeTitle">
+      <div class="welcome-grid">
+
+        <div class="welcome-col welcome-col-left">
+          <div class="welcome-header-row">
+            <div class="welcome-logo-wrap">
+              <img src="akal-academy-logo.png" alt="Akal Academy logo" class="welcome-logo">
+            </div>
+            <p class="eyebrow">Behavioral Economics &middot; Interactive Activity</p>
+          </div>
+          <h1 id="welcomeTitle">Lottery game &mdash; wheel spin</h1>
+          <p class="lede">
+            You've got 40 points. Every spin is pure luck &mdash; a straight 50/50 draw.
+            Win and you gain, lose and it costs you.
+          </p>
+        </div>
+
+        <div class="welcome-col welcome-col-right">
+          <div class="how-it-works">
+            <h2>The rules</h2>
+            <ol class="steps-list">
+              <li>
+                <span class="step-index" aria-hidden="true">01</span>
+                <div>
+                  <h3>You start with 40 points on the board.</h3>
+                  <p>That's your score for the whole session &mdash; watch it live.</p>
+                </div>
+              </li>
+              <li>
+                <span class="step-index" aria-hidden="true">02</span>
+                <div>
+                  <h3>Every spin is a lottery draw &mdash; 50% win, 50% loss.</h3>
+                  <p>A win always pays out <span class="pts-gain">+10</span>. A loss always costs you.</p>
+                </div>
+              </li>
+              
+            </ol>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="identity-card-wrap">
+        <div class="identity-card" id="identityCard">
+          <p class="identity-instruction">Enter your name, class & section </p>
+          <div class="identity-fields">
+            <div class="field field-name">
+              <label for="studentNameInput">Your name <span class="required" style="color: var(--color-red);">*</span></label>
+              <input type="text" id="studentNameInput" name="studentName" autocomplete="name" placeholder="e.g. Aarav Sharma" required>
+            </div>
+            <div class="field">
+              <label for="studentClassSelect">Class <span class="required" style="color: var(--color-red);">*</span></label>
+              <select id="studentClassSelect" name="studentClass" required>
+                <option value="" disabled selected>Select class</option>
+                <option value="VI">VI</option>
+                <option value="VII">VII</option>
+                <option value="VIII">VIII</option>
+                <option value="IX">IX</option>
+                <option value="X">X</option>
+                <option value="XI">XI</option>
+                <option value="XII">XII</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="studentSectionSelect">Section <span class="required" style="color: var(--color-red);">*</span></label>
+              <select id="studentSectionSelect" name="studentSection" required>
+                <option value="" disabled selected>Select section</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+                <option value="D">D</option>
+                <option value="E">E</option>
+                <option value="F">F</option>
+                <option value="G">G</option>
+                <option value="H">H</option>
+              </select>
+            </div>
+          </div>
+
+          <button id="beginButton" class="btn btn-primary btn-large identity-submit" type="button">
+            Start playing
+          </button>
+          <p class="submit-status" id="submitStatus" aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ======================== EXPERIMENT SCREEN ======================== -->
+    <section id="experimentScreen" class="screen" aria-labelledby="experimentTitle">
+
+      <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100"
+           aria-valuenow="0" aria-label="Experiment progress" id="progressTrack">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+
+      <h1 id="experimentTitle" class="visually-hidden">Spin the wheel</h1>
+
+      <div class="game-heading">
+        <p class="game-title" id="gameTitle">Game 1</p>
+        <p class="game-mp" id="gameMp">M  P : 40</p>
+      </div>
+
+      <!-- Replaces the old compact "If green / If red / Spins taken" readout
+           bar — same information, spelled out plainly with the dynamic
+           numbers shown big. -->
+      <div class="instruction-card" id="nextRoundCard" aria-live="polite">
+        <div class="instruction-col instruction-col-green">
+          <svg class="sweep-svg" aria-hidden="true"><rect class="sweep-rect" x="1" y="1" width="99%" height="99%" rx="17" ry="17" pathLength="100"></rect></svg>
+          <p class="instruction-line">
+            <span class="dot dot-green" aria-hidden="true"></span>
+            If the wheel lands on <strong>green</strong>, you win <span class="pts-gain">+10</span>
+          </p>
+          <p class="instruction-value pts-gain">40 + 10 = 50</p>
+        </div>
+        <div class="instruction-col instruction-col-red">
+          <svg class="sweep-svg" aria-hidden="true"><rect class="sweep-rect" x="1" y="1" width="99%" height="99%" rx="17" ry="17" pathLength="100"></rect></svg>
+          <p class="instruction-line">
+            <span class="dot dot-red" aria-hidden="true"></span>
+            If the wheel lands on <strong>red</strong>, you lose <span class="pts-loss" id="nextLossValue">&minus;2</span>
+          </p>
+          <p class="instruction-value pts-loss" id="nextLossEquation">40 &minus; 2 = 38</p>
+        </div>
+      </div>
+
+      <p class="decision-question" id="decisionQuestion">Would you like to spin the wheel, or keep your 40 points?</p>
+
+      <div class="controls">
+        <button id="spinButton" class="btn btn-primary btn-large" type="button">
+          Spin the wheel
+        </button>
+        <button id="stopButton" class="btn btn-ghost" type="button">
+          Keep my 40 points
+        </button>
+      </div>
+
+      <!-- Wheel stays hidden until the student commits to a spin, so the
+           segment layout can't be studied ahead of a decision. -->
+      <div class="wheel-stage wheel-stage-solo is-hidden" id="wheelStage">
+        <div class="wheel-pointer" aria-hidden="true"></div>
+        <div class="wheel-container">
+          <svg id="wheelSvg" viewBox="0 0 400 400" role="img" aria-label="Spinning wheel with alternating red and green segments">
+            <g id="wheelGroup"></g>
+          </svg>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ========================== RESULTS SCREEN ========================== -->
+    <section id="resultsScreen" class="screen" aria-labelledby="resultsTitle">
+      <div class="panel results-panel">
+        <p class="eyebrow">Wheel stopped</p>
+        <h1 id="resultsTitle">Here's how your spins played out.</h1>
+        <p class="results-identity" id="resultsIdentity"></p>
+
+        <div class="summary-grid" id="summaryGrid">
+          <!-- Summary cards injected by JavaScript -->
+        </div>
+
+        <div class="debrief-box" id="debriefBox">
+          <!-- Dynamic "what happened" sentence injected by JavaScript -->
+        </div>
+
+        <h2 class="history-heading">Full spin history</h2>
+        <div class="history-table-wrap">
+          <table class="history-table" id="historyTable">
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Result</th>
+                <th scope="col">Points</th>
+                <th scope="col">Reaction time</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="export-controls">
+          <button id="restartButton" class="btn btn-ghost" type="button">Start a new session</button>
+        </div>
+        <p class="submit-status" id="resultsSubmitStatus" aria-live="polite"></p>
+      </div>
+    </section>
+
+</main>
+</div>
+
+<!-- 3rd-loss checkpoint dialog: lists each round played so far (win/loss,
+     no running total) and asks whether the student wants to keep going. -->
+<div id="checkpointModal" class="modal-overlay" hidden>
+  <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="checkpointModalTitle" aria-describedby="checkpointModalBody">
+    <h2 id="checkpointModalTitle">Checkpoint &mdash; 3 losses so far</h2>
+    <p id="checkpointModalBody">Here's where things stand. Want to keep spinning?</p>
+    <div class="checkpoint-stats" id="checkpointStats">
+      <!-- Stat tiles injected by JavaScript -->
+    </div>
+    <div class="modal-actions">
+      <button id="checkpointContinueButton" class="btn btn-primary" type="button">Keep spinning</button>
+      <button id="checkpointStopButton" class="btn btn-ghost" type="button">Keep my points &amp; see results</button>
+    </div>
+  </div>
+</div>
+
+<!-- Stop-experiment confirmation dialog -->
+<div id="confirmModal" class="modal-overlay" hidden>
+  <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="confirmModalTitle" aria-describedby="confirmModalBody">
+    <h2 id="confirmModalTitle">Keep your points and stop?</h2>
+    <p id="confirmModalBody">
+      This will end the session immediately and take you to your results.
+      You will not be able to spin again in this session.
+    </p>
+    <div class="modal-actions">
+      <button id="confirmStopButton" class="btn btn-primary" type="button">Yes, keep my points</button>
+      <button id="cancelStopButton" class="btn btn-ghost" type="button">Keep going</button>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
