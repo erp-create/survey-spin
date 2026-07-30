@@ -255,15 +255,28 @@
 <!-- Stop-experiment confirmation dialog -->
 <div id="confirmModal" class="modal-overlay" hidden>
   <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="confirmModalTitle" aria-describedby="confirmModalBody">
-    <h2 id="confirmModalTitle">Keep your points and stop?</h2>
+    <h2 id="confirmModalTitle">Keep your points for this game?</h2>
     <p id="confirmModalBody">
-      This will end the session immediately and take you to your results.
-      You will not be able to spin again in this session.
+      You won't spin in this game, so your points stay as they are.
+      Play then moves on to the next game.
     </p>
     <div class="modal-actions">
       <button id="confirmStopButton" class="btn btn-primary" type="button">Yes, keep my points</button>
       <button id="cancelStopButton" class="btn btn-ghost" type="button">Keep going</button>
     </div>
+  </div>
+</div>
+
+<!-- Game-transition flash: slides in from the right, settles in the
+     center, then slides out to the left, revealing the next game
+     underneath. Fires whenever play moves from one game to the next
+     (after a spin result or after "keep my points"), so it's unmistakable
+     that a fresh lottery round has started. Purely visual — aria-hidden,
+     screen readers get the new "Game N" heading directly instead. -->
+<div id="gameTransitionOverlay" class="game-transition-overlay" hidden aria-hidden="true">
+  <div class="game-transition-inner">
+    <p class="game-transition-eyebrow">New round</p>
+    <p class="game-transition-text" id="gameTransitionText">Game 2</p>
   </div>
 </div>
 
