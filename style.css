@@ -663,6 +663,47 @@ main { flex: 1; display: flex; justify-content: center; padding: clamp(1.1rem, 3
 
 .export-controls { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
 
+/* ---------------------------- Game-transition flash -------------------------- *
+ * A brief, unmissable "Game N" flash between rounds. Slides in from the
+ * right on a decelerating ease, holds dead-center, then accelerates back
+ * out to the left — timings are driven from script.js so both stay in
+ * sync. Fixed + full-viewport so it reads the same regardless of scroll
+ * position, and sits above everything except nothing (it's the topmost
+ * layer while it's shown). */
+.game-transition-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-ink);
+  will-change: transform;
+}
+.game-transition-overlay[hidden] { display: none; }
+.game-transition-inner { text-align: center; }
+.game-transition-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-paper);
+  opacity: 0.6;
+  margin: 0 0 0.5em;
+}
+.game-transition-text {
+  font-size: clamp(2.4rem, 9vw, 4.5rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-paper);
+  margin: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .game-transition-overlay { transition: opacity 1ms !important; transform: none !important; }
+}
+
+.result-pill.kept { background: var(--color-ink-soft); }
+
 /* -------------------------------- Modal ------------------------------------ */
 .modal-overlay {
   position: fixed; inset: 0;
