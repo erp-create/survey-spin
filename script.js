@@ -22,7 +22,10 @@
     greenReward: 10,           // points added on a win (every time, flat)
     penaltySequence: [2, 4, 8, 16, 32], // loss penalty, in order — doubles each time, never resets
     numSegments: 10,           // must be even — alternates red/green, 50/50 area
-    maxSpins: 5,                // hard cap — the spin button disables once this many spins are used
+    maxGames: 5,                // hard cap on total games (whether spun or kept) in one session
+    gameTransitionSlideInMs: 550,   // "Game N" flash: slide-in duration (decelerating into center)
+    gameTransitionHoldMs: 600,      // how long it holds dead-center before sliding out
+    gameTransitionSlideOutMs: 420,  // slide-out duration (accelerating off to the left)
     wheelColors: {
       green: { fill: "#2f8f5b", strokeDark: "#1f6640" },
       red: { fill: "#c6473f", strokeDark: "#8f2f29" }
@@ -43,9 +46,13 @@
 
   function resetState() {
     state = {
-      spinCount: 0,
+      spinCount: 0,        // number of actual spins performed
+      gameCount: 0,        // number of games completed overall (spun OR kept) — drives
+                            // "Game N" numbering, the progress bar, the session cap, and
+                            // the escalating penalty (all of which are per-game, not per-spin)
       greenCount: 0,
       redCount: 0,
+      keptCount: 0,         // games ended via "Keep my points" instead of spinning
       nextRedPenalty: CONFIG.penaltySequence[0], // penalty that WOULD apply if the next spin is red
       maxPenaltyReached: 0,
       totalGained: 0,            // sum of every green reward so far
@@ -241,9 +248,10 @@
   // logSpin(). IMPORTANT: this app measures DECISIONS (spin vs. stop), not
   // accumulated score — so every spin conceptually starts fresh at
   // CONFIG.initialScore rather than carrying a running total from the last
-  // spin. The escalating loss penalty is untouched by this: it still climbs
-  // with every red outcome (state.redCount), exactly as before — only the
-  // "starting point" for each round's own before/after no longer persists.
+  // spin. The loss penalty that WOULD apply on a red outcome is read from
+  // state.nextRedPenalty, which escalatePenaltyAfterGame() advances by one
+  // step in CONFIG.penaltySequence after every game — win, loss, or kept —
+  // so the penalty climbs game-by-game, not only after a loss.
   function applyOutcomeToScore(outcome) {
     const scoreBefore = CONFIG.initialScore;
     let scoreAfter;
@@ -253,20 +261,25 @@
       scoreAfter = scoreBefore + CONFIG.greenReward;
       state.greenCount += 1;
       state.totalGained += CONFIG.greenReward;
-      // Loss penalty is untouched by wins, per spec.
     } else {
-      penaltyApplied = CONFIG.penaltySequence[state.redCount] ??
-        CONFIG.penaltySequence[CONFIG.penaltySequence.length - 1];
+      penaltyApplied = state.nextRedPenalty;
       scoreAfter = scoreBefore - penaltyApplied;
       state.redCount += 1;
       state.totalLost += penaltyApplied;
       state.maxPenaltyReached = Math.max(state.maxPenaltyReached, penaltyApplied);
-      // Next penalty is simply the next value in the sequence (doubles each time).
-      state.nextRedPenalty = CONFIG.penaltySequence[state.redCount] ??
-        CONFIG.penaltySequence[CONFIG.penaltySequence.length - 1];
     }
 
     return { scoreBefore, scoreAfter, penaltyApplied };
+  }
+
+  // Advances the "next red penalty" by one step for every completed game,
+  // regardless of whether that game was a win, a loss, or a kept round —
+  // call this once per game, right after state.gameCount has been bumped
+  // for that game. Doubles each step per CONFIG.penaltySequence, then holds
+  // at the final value once the sequence is exhausted.
+  function escalatePenaltyAfterGame() {
+    state.nextRedPenalty = CONFIG.penaltySequence[state.gameCount] ??
+      CONFIG.penaltySequence[CONFIG.penaltySequence.length - 1];
   }
 
   /* --------------------------- 5. DATA COLLECTION ---------------------------- */
@@ -276,12 +289,32 @@
     const pointsDelta = outcome === "green" ? CONFIG.greenReward : -penaltyApplied;
     const entry = {
       timestamp: new Date(now).toISOString(),
-      spinNumber: state.spinCount,
+      spinNumber: state.gameCount, // the game number this spin was played on
       wheelResult: outcome,
       scoreBefore: scoreBefore,
       scoreAfter: scoreAfter,
       pointsDelta: pointsDelta,
       lossPenaltyApplied: penaltyApplied,
+      reactionTimeMs: reactionTimeMs,
+      totalElapsedMs: now - state.experimentStartTime
+    };
+    state.history.push(entry);
+    return entry;
+  }
+
+  // Logs a game the student chose to end via "Keep my points" instead of
+  // spinning — no wheel outcome, no points change, but it still occupies a
+  // slot in the round-by-round history and counts toward the session cap.
+  function logKeptRound(reactionTimeMs) {
+    const now = Date.now();
+    const entry = {
+      timestamp: new Date(now).toISOString(),
+      spinNumber: state.gameCount,
+      wheelResult: "kept",
+      scoreBefore: CONFIG.initialScore,
+      scoreAfter: CONFIG.initialScore,
+      pointsDelta: 0,
+      lossPenaltyApplied: 0,
       reactionTimeMs: reactionTimeMs,
       totalElapsedMs: now - state.experimentStartTime
     };
@@ -399,6 +432,9 @@
     els.confirmStopButton = document.getElementById("confirmStopButton");
     els.cancelStopButton = document.getElementById("cancelStopButton");
 
+    els.gameTransitionOverlay = document.getElementById("gameTransitionOverlay");
+    els.gameTransitionText = document.getElementById("gameTransitionText");
+
     els.themeToggle = document.getElementById("themeToggle");
     els.soundToggle = document.getElementById("soundToggle");
   }
@@ -425,22 +461,23 @@
   // changes, since nothing carries over between spins.
   function renderGameHeading() {
     if (!els.gameTitle) return;
-    const gameNumber = Math.min(state.spinCount + 1, CONFIG.maxSpins);
+    const gameNumber = Math.min(state.gameCount + 1, CONFIG.maxGames);
     els.gameTitle.textContent = `Game ${gameNumber}`;
     els.gameMp.textContent = `MP : ${CONFIG.initialScore}`;
   }
 
-  // Updates the progress bar against the hard maxSpins cap, keeps the spin
-  // button in sync once that cap is reached, and refreshes the instruction
-  // card to match.
+  // Updates the progress bar against the hard maxGames cap, keeps the spin
+  // and stop buttons in sync once that cap is reached, and refreshes the
+  // instruction card to match.
   function updateProgressUI() {
-    const progressPct = Math.min(100, Math.round((state.spinCount / CONFIG.maxSpins) * 100));
+    const progressPct = Math.min(100, Math.round((state.gameCount / CONFIG.maxGames) * 100));
     els.progressFill.style.width = progressPct + "%";
     els.progressTrack.setAttribute("aria-valuenow", String(progressPct));
 
-    if (state.spinCount >= CONFIG.maxSpins) {
-      els.spinButton.textContent = "All 5 spins used";
+    if (state.gameCount >= CONFIG.maxGames) {
+      els.spinButton.textContent = "All games played";
       els.spinButton.disabled = true;
+      if (els.stopButton) els.stopButton.disabled = true;
     }
 
     renderNextRoundPreview();
@@ -452,7 +489,7 @@
   // (40 + 10 = 50 / 40 − N = ...) so the arithmetic is never left implicit.
   function renderNextRoundPreview() {
     if (!els.nextRoundCard) return;
-    if (state.spinCount >= CONFIG.maxSpins) {
+    if (state.gameCount >= CONFIG.maxGames) {
       els.nextRoundCard.innerHTML = `
         <p class="instruction-line">No spins left &mdash; results coming up.</p>
       `;
@@ -483,32 +520,97 @@
     }
   }
 
+  /* ------------------------------ Game-to-game transition ------------------------ *
+   * Shared by both the "just spun" and "just kept points" paths: plays the
+   * "Game N" flash — slides in from the right, decelerating into the
+   * center, holds, then accelerates back out to the left — then resets the
+   * decision controls for the next game. */
+
+  function advanceToNextGame() {
+    const upcomingGameNumber = Math.min(state.gameCount + 1, CONFIG.maxGames);
+    playGameTransition(upcomingGameNumber).then(() => {
+      setWheelVisible(false);
+      els.spinButton.textContent = "Spin the wheel";
+      els.spinButton.disabled = false;
+      els.stopButton.textContent = `Keep my ${CONFIG.initialScore} points`;
+      els.stopButton.disabled = false;
+      if (els.decisionQuestion) {
+        els.decisionQuestion.textContent = `Would you like to spin the wheel, or keep your ${CONFIG.initialScore} points?`;
+      }
+      state.readyTimestamp = Date.now();
+      els.spinButton.focus();
+    });
+  }
+
+  // Returns a Promise that resolves once the flash has fully cleared.
+  function playGameTransition(gameNumber) {
+    return new Promise((resolve) => {
+      const overlay = els.gameTransitionOverlay;
+      const textEl = els.gameTransitionText;
+      if (!overlay || !textEl) { resolve(); return; }
+
+      const inMs = CONFIG.gameTransitionSlideInMs;
+      const holdMs = CONFIG.gameTransitionHoldMs;
+      const outMs = CONFIG.gameTransitionSlideOutMs;
+
+      textEl.textContent = `Game ${gameNumber}`;
+      overlay.hidden = false;
+      overlay.style.transition = "none";
+      overlay.style.transform = "translateX(100%)";
+      // Force reflow so the slide-in transition below reliably applies.
+      // eslint-disable-next-line no-unused-expressions
+      overlay.offsetWidth;
+
+      requestAnimationFrame(() => {
+        overlay.style.transition = `transform ${inMs}ms cubic-bezier(0.16, 1, 0.3, 1)`; // decelerate into center
+        overlay.style.transform = "translateX(0%)";
+      });
+
+      setTimeout(() => {
+        overlay.style.transition = `transform ${outMs}ms cubic-bezier(0.55, 0, 1, 0.45)`; // accelerate out
+        overlay.style.transform = "translateX(-100%)";
+      }, inMs + holdMs);
+
+      // Small buffer past the last transition in case transitionend-style
+      // timing drifts slightly (e.g. a backgrounded tab).
+      setTimeout(() => {
+        overlay.hidden = true;
+        overlay.style.transition = "none";
+        overlay.style.transform = "translateX(100%)";
+        resolve();
+      }, inMs + holdMs + outMs + 60);
+    });
+  }
+
   /* -------------------------------- Spin handler -------------------------------- */
 
   async function handleSpinClick() {
-    if (state.isSpinning || state.spinCount >= CONFIG.maxSpins) return;
+    if (state.isSpinning || state.gameCount >= CONFIG.maxGames) return;
 
     const reactionTimeMs = Date.now() - state.readyTimestamp;
 
     state.isSpinning = true;
     els.spinButton.disabled = true;
+    els.stopButton.disabled = true;
     setWheelVisible(true); // reveal the wheel the instant a spin is committed to
     playSpinStartSound();
 
     const outcome = determineOutcome();
     state.spinCount += 1;
+    state.gameCount += 1;
 
     await spinWheelToOutcome(outcome);
 
     const { scoreBefore, scoreAfter, penaltyApplied } = applyOutcomeToScore(outcome);
-    const entry = logSpin(outcome, scoreBefore, scoreAfter, penaltyApplied, reactionTimeMs);
+    logSpin(outcome, scoreBefore, scoreAfter, penaltyApplied, reactionTimeMs);
+    escalatePenaltyAfterGame(); // penalty climbs every game, win or lose
 
     renderGameHeading();
     updateProgressUI(); // also refreshes the instruction card (rebuilds its DOM)
 
     // Sweep only the box matching what actually happened — a quick trace
     // around its border, fired fresh every spin. Guarded because the card
-    // has no color boxes left to target once "No spins left" replaces it.
+    // has no color boxes left to target once "No games left" replaces it.
     const sweepTarget = els.nextRoundCard.querySelector(
       outcome === "green" ? ".instruction-col-green" : ".instruction-col-red"
     );
@@ -525,26 +627,26 @@
     // wheel hides again while they decide on the next spin.
     setTimeout(() => setWheelVisible(false), 1100);
 
-    state.readyTimestamp = Date.now();
     state.isSpinning = false;
 
-    const reachedMaxSpins = state.spinCount >= CONFIG.maxSpins;
+    const reachedMaxGames = state.gameCount >= CONFIG.maxGames;
     const triggerCheckpoint = outcome === "red" && state.redCount === 3 &&
-      !state.checkpointShown && !reachedMaxSpins;
+      !state.checkpointShown && !reachedMaxGames;
 
     if (triggerCheckpoint) {
       // Spin button stays disabled until the student answers the checkpoint.
       state.checkpointShown = true;
       setTimeout(openCheckpointModal, 500); // brief pause so the shake/result is seen first
-    } else if (reachedMaxSpins) {
-      // updateProgressUI() already disabled + relabeled the button, and the
-      // next-round card already reads "No spins left — results coming up.",
+    } else if (reachedMaxGames) {
+      // updateProgressUI() already disabled + relabeled the buttons, and the
+      // next-round card already reads "No games left — results coming up.",
       // so no separate announcement is needed here.
       setTimeout(() => {
         if (!els.resultsScreen.classList.contains("is-active")) endExperiment();
       }, 1800);
     } else {
-      els.spinButton.disabled = false;
+      // Let the result sink in, then flash into the next game.
+      setTimeout(() => { advanceToNextGame(); }, 1300);
     }
   }
 
@@ -568,7 +670,39 @@
 
   function handleConfirmStop() {
     closeConfirmModal();
-    endExperiment();
+    resolveGameByKeepingPoints();
+  }
+
+  // "Keep my points" now only ends the CURRENT game: it's logged as a kept
+  // round (no spin, no points change), counts toward the session's game
+  // cap, and still escalates next game's penalty just like a spin does —
+  // then play carries on to the next game automatically, exactly as it
+  // does after a spin. The session as a whole only ends once every game
+  // has been played (or via the checkpoint's separate early-stop option).
+  function resolveGameByKeepingPoints() {
+    if (state.isSpinning || state.gameCount >= CONFIG.maxGames) return;
+
+    const reactionTimeMs = Date.now() - state.readyTimestamp;
+
+    els.spinButton.disabled = true;
+    els.stopButton.disabled = true;
+
+    state.gameCount += 1;
+    state.keptCount += 1;
+    logKeptRound(reactionTimeMs);
+    escalatePenaltyAfterGame();
+
+    renderGameHeading();
+    updateProgressUI();
+
+    const reachedMaxGames = state.gameCount >= CONFIG.maxGames;
+    if (reachedMaxGames) {
+      setTimeout(() => {
+        if (!els.resultsScreen.classList.contains("is-active")) endExperiment();
+      }, 500);
+    } else {
+      advanceToNextGame();
+    }
   }
 
   /* --------------------------- 3rd-loss checkpoint flow --------------------------- *
@@ -582,11 +716,14 @@
   function renderCheckpointStats() {
     const roundRows = state.history.map((entry) => {
       const isWin = entry.wheelResult === "green";
-      const valueText = isWin ? `+${entry.pointsDelta}` : `\u2212${Math.abs(entry.pointsDelta)}`;
+      const isKept = entry.wheelResult === "kept";
+      const label = isKept ? "Kept" : (isWin ? "Green" : "Red");
+      const valueText = isKept ? "0" : (isWin ? `+${entry.pointsDelta}` : `\u2212${Math.abs(entry.pointsDelta)}`);
+      const valueClass = isKept ? "" : (isWin ? "gain" : "loss");
       return `
         <div class="checkpoint-round">
-          <span class="checkpoint-round-label">Round ${entry.spinNumber} &middot; ${isWin ? "Green" : "Red"}</span>
-          <span class="checkpoint-round-value ${isWin ? "gain" : "loss"}">${valueText}</span>
+          <span class="checkpoint-round-label">Round ${entry.spinNumber} &middot; ${label}</span>
+          <span class="checkpoint-round-value ${valueClass}">${valueText}</span>
         </div>
       `;
     }).join("");
@@ -624,8 +761,7 @@
 
   function handleCheckpointContinue() {
     closeCheckpointModal();
-    els.spinButton.disabled = false;
-    els.spinButton.focus();
+    advanceToNextGame();
   }
 
   function handleCheckpointStop() {
@@ -654,16 +790,17 @@
   // net or final score — the focus is on the decisions made (spin again vs.
   // stop) as the loss penalty climbed, not on how the points added up.
   function buildDebriefHtml() {
-    const stoppedEarly = state.spinCount < CONFIG.maxSpins;
+    const stoppedEarly = state.gameCount < CONFIG.maxGames;
 
     const comparisonSentence = `Across the session you won <strong>${state.greenCount}</strong>
-      round${state.greenCount === 1 ? "" : "s"} and lost <strong>${state.redCount}</strong>
-      round${state.redCount === 1 ? "" : "s"} &mdash; with the loss penalty climbing to
-      \u2212${state.maxPenaltyReached} by the end.`;
+      round${state.greenCount === 1 ? "" : "s"}, lost <strong>${state.redCount}</strong>
+      round${state.redCount === 1 ? "" : "s"}, and kept your points without spinning on
+      <strong>${state.keptCount}</strong> round${state.keptCount === 1 ? "" : "s"} &mdash;
+      with the loss penalty climbing to \u2212${state.maxPenaltyReached} by the end.`;
 
     const stopSentence = stoppedEarly
-      ? `You chose to stop after ${state.spinCount} of your ${CONFIG.maxSpins} possible spins.`
-      : `You used all ${CONFIG.maxSpins} of your spins.`;
+      ? `You ended the session early, after ${state.gameCount} of your ${CONFIG.maxGames} possible games.`
+      : `You played all ${CONFIG.maxGames} games.`;
 
     const checkpointSentence = state.checkpointShown
       ? " You also saw the checkpoint after your 3rd loss, with every round up to that point listed out for you."
@@ -679,9 +816,10 @@
     els.resultsIdentity.textContent = `${state.studentName} \u00b7 Class ${state.studentClass}-${state.studentSection}`;
 
     const summaryItems = [
-      { label: "Total spins", value: state.spinCount, accent: "" },
+      { label: "Games played", value: state.gameCount, accent: "" },
       { label: "Green", value: state.greenCount, accent: "green" },
       { label: "Red", value: state.redCount, accent: "red" },
+      { label: "Kept", value: state.keptCount, accent: "" },
       { label: "Max loss penalty", value: `\u2212${state.maxPenaltyReached}`, accent: "gold" },
       { label: "Session duration", value: formatDuration(totalDurationMs), accent: "" }
     ];
@@ -697,12 +835,15 @@
 
     els.historyTableBody.innerHTML = state.history.map((entry) => {
       const isWin = entry.wheelResult === "green";
-      const pointsText = isWin ? `+${entry.pointsDelta}` : `\u2212${Math.abs(entry.pointsDelta)}`;
+      const isKept = entry.wheelResult === "kept";
+      const pillLabel = isKept ? "Kept" : (isWin ? "Green" : "Red");
+      const pointsText = isKept ? "0" : (isWin ? `+${entry.pointsDelta}` : `\u2212${Math.abs(entry.pointsDelta)}`);
+      const pointsClass = isKept ? "" : (isWin ? "pts-gain" : "pts-loss");
       return `
         <tr>
           <td>${entry.spinNumber}</td>
-          <td><span class="result-pill ${entry.wheelResult}">${isWin ? "Green" : "Red"}</span></td>
-          <td class="${isWin ? "pts-gain" : "pts-loss"}">${pointsText}</td>
+          <td><span class="result-pill ${entry.wheelResult}">${pillLabel}</span></td>
+          <td class="${pointsClass}">${pointsText}</td>
           <td>${(entry.reactionTimeMs / 1000).toFixed(2)}s</td>
         </tr>
       `;
@@ -722,7 +863,9 @@
       // Computed for the teacher's records only — the app itself never shows
       // or tracks a running score anymore, since each spin starts fresh.
       finalScore: CONFIG.initialScore + state.totalGained - state.totalLost,
+      gamesPlayed: state.gameCount,
       totalSpins: state.spinCount,
+      keptRounds: state.keptCount,
       greenOutcomes: state.greenCount,
       redOutcomes: state.redCount,
       maxLossPenaltyReached: state.maxPenaltyReached,
@@ -847,6 +990,14 @@
     group.style.transition = "none";
     group.style.transform = "rotate(0deg)";
 
+    // Guard against the transition flash being mid-animation from a
+    // previous session if the student restarts unusually quickly.
+    if (els.gameTransitionOverlay) {
+      els.gameTransitionOverlay.hidden = true;
+      els.gameTransitionOverlay.style.transition = "none";
+      els.gameTransitionOverlay.style.transform = "translateX(100%)";
+    }
+
     renderExperimentReadouts();
     setWheelVisible(false);
     els.stopButton.textContent = `Keep my ${CONFIG.initialScore} points`;
@@ -855,6 +1006,7 @@
     }
     els.spinButton.textContent = "Spin the wheel";
     els.spinButton.disabled = false;
+    els.stopButton.disabled = false;
     els.submitStatus.textContent = "";
     els.submitStatus.removeAttribute("data-state");
 
