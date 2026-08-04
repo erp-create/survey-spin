@@ -48,50 +48,22 @@
 
     <!-- ========================= WELCOME SCREEN ========================= -->
     <section id="welcomeScreen" class="screen screen-wide is-active" aria-labelledby="welcomeTitle">
-      <div class="welcome-grid">
-
-        <div class="welcome-col welcome-col-left">
-          <div class="welcome-header-row">
-            <div class="welcome-logo-wrap">
-              <img src="akal-academy-logo.png" alt="Akal Academy logo" class="welcome-logo">
-            </div>
-            <p class="eyebrow">Behavioral Economics &middot; Interactive Activity</p>
-          </div>
-          <h1 id="welcomeTitle">Lottery game &mdash; wheel spin</h1>
-          <p class="lede">
-            You've got 40 points. Every spin is pure luck &mdash; a straight 50/50 draw.
-            Win and you gain, lose and it costs you.
-          </p>
+      <div class="welcome-intro">
+        <div class="welcome-logo-wrap">
+          <img src="akal-academy-logo.png" alt="Akal Academy logo" class="welcome-logo">
         </div>
-
-        <div class="welcome-col welcome-col-right">
-          <div class="how-it-works">
-            <h2>The rules</h2>
-            <ol class="steps-list">
-              <li>
-                <span class="step-index" aria-hidden="true">01</span>
-                <div>
-                  <h3>You start with 40 points on the board.</h3>
-                  <p>That's your score for the whole session &mdash; watch it live.</p>
-                </div>
-              </li>
-              <li>
-                <span class="step-index" aria-hidden="true">02</span>
-                <div>
-                  <h3>Every spin is a lottery draw &mdash; 50% win, 50% loss.</h3>
-                  <p>A win always pays out <span class="pts-gain">+10</span>. A loss always costs you.</p>
-                </div>
-              </li>
-              
-            </ol>
-          </div>
-        </div>
-
+        <h1 id="welcomeTitle">Lottery game &mdash; wheel spin</h1>
+        <p class="eyebrow">
+          <svg class="eyebrow-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 2 L14.2 9.3 L21.5 12 L14.2 14.7 L12 22 L9.8 14.7 L2.5 12 L9.8 9.3 Z" fill="currentColor"/>
+          </svg>
+          Behavioral Economics &middot; Interactive Activity
+        </p>
       </div>
 
       <div class="identity-card-wrap">
         <div class="identity-card" id="identityCard">
-          <p class="identity-instruction">Enter your name, class & section </p>
+          <p class="identity-instruction">Enter your name, class, section & academy </p>
           <div class="identity-fields">
             <div class="field field-name">
               <label for="studentNameInput">Your name <span class="required" style="color: var(--color-red);">*</span></label>
@@ -122,6 +94,133 @@
                 <option value="F">F</option>
                 <option value="G">G</option>
                 <option value="H">H</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="studentAcademySelect">Academy <span class="required" style="color: var(--color-red);">*</span></label>
+              <select id="studentAcademySelect" name="studentAcademy" required>
+                <option value="" disabled selected>Select academy</option>
+                <option value="AA Ajitsar Ratia">AA Ajitsar Ratia</option>
+                <option value="AA Bagha">AA Bagha</option>
+                <option value="AA Bakarwal">AA Bakarwal</option>
+                <option value="AA Balbehra">AA Balbehra</option>
+                <option value="AA Bangi Nihal Singh Wala">AA Bangi Nihal Singh Wala</option>
+                <option value="AA Baragura">AA Baragura</option>
+                <option value="AA Basarke">AA Basarke</option>
+                <option value="AA Basti Vasava Singh">AA Basti Vasava Singh</option>
+                <option value="AA Behak Fattu">AA Behak Fattu</option>
+                <option value="AA Benra">AA Benra</option>
+                <option value="AA Bhadaur">AA Bhadaur</option>
+                <option value="AA Bhai Desa">AA Bhai Desa</option>
+                <option value="AA Bharana">AA Bharana</option>
+                <option value="AA Bharyal Lahri">AA Bharyal Lahri</option>
+                <option value="AA Bhunsla">AA Bhunsla</option>
+                <option value="AA Bilga">AA Bilga</option>
+                <option value="AA Boparai Kalan">AA Boparai Kalan</option>
+                <option value="AA Chahal Kalan">AA Chahal Kalan</option>
+                <option value="AA Chak Bhai Ke">AA Chak Bhai Ke</option>
+                <option value="AA Chak Desraj">AA Chak Desraj</option>
+                <option value="AA Chak Mander">AA Chak Mander</option>
+                <option value="AA cheema (Eng. Medium)">AA cheema (Eng. Medium)</option>
+                <option value="AA Cheema(Punjabi Medium)">AA Cheema(Punjabi Medium)</option>
+                <option value="AA Chogawan">AA Chogawan</option>
+                <option value="AA Cholang">AA Cholang</option>
+                <option value="AA Chunni Kalan">AA Chunni Kalan</option>
+                <option value="AA Dadehar Sahib">AA Dadehar Sahib</option>
+                <option value="AA Dakra Sahib">AA Dakra Sahib</option>
+                <option value="AA Damdama Sahib">AA Damdama Sahib</option>
+                <option value="AA Darewala">AA Darewala</option>
+                <option value="AA Dashmesh Nagar">AA Dashmesh Nagar</option>
+                <option value="AA Daula">AA Daula</option>
+                <option value="AA Dhaliwal Bait">AA Dhaliwal Bait</option>
+                <option value="AA Dhamot">AA Dhamot</option>
+                <option value="AA Dhanal Kalan">AA Dhanal Kalan</option>
+                <option value="AA Dharamgarh Chhanna">AA Dharamgarh Chhanna</option>
+                <option value="AA Dhindsa">AA Dhindsa</option>
+                <option value="AA Dhotian">AA Dhotian</option>
+                <option value="AA Dhudial">AA Dhudial</option>
+                <option value="AA Dhugga Kalan">AA Dhugga Kalan</option>
+                <option value="AA Dialpura Mirza">AA Dialpura Mirza</option>
+                <option value="AA Ellenabad">AA Ellenabad</option>
+                <option value="AA Fatehgarh Chhanna">AA Fatehgarh Chhanna</option>
+                <option value="AA Fatehgarh Ganduan">AA Fatehgarh Ganduan</option>
+                <option value="AA Ganganagar">AA Ganganagar</option>
+                <option value="AA Ghugg">AA Ghugg</option>
+                <option value="AA Gobindpur">AA Gobindpur</option>
+                <option value="AA Gomti">AA Gomti</option>
+                <option value="AA Gurudwara Sacha Sauda">AA Gurudwara Sacha Sauda</option>
+                <option value="AA Habri">AA Habri</option>
+                <option value="AA Holi-Brara">AA Holi-Brara</option>
+                <option value="AA Jaga Ram Tirath">AA Jaga Ram Tirath</option>
+                <option value="AA Jand Sahib">AA Jand Sahib</option>
+                <option value="AA Jandiali">AA Jandiali</option>
+                <option value="AA Jawaharke">AA Jawaharke</option>
+                <option value="AA Jhande">AA Jhande</option>
+                <option value="AA Jhandiana">AA Jhandiana</option>
+                <option value="AA Kajri">AA Kajri</option>
+                <option value="AA Kakra Kalan">AA Kakra Kalan</option>
+                <option value="AA Kaleke">AA Kaleke</option>
+                <option value="AA Kalloh">AA Kalloh</option>
+                <option value="AA Kamalpur">AA Kamalpur</option>
+                <option value="AA Kamrani">AA Kamrani</option>
+                <option value="AA Kauriwara">AA Kauriwara</option>
+                <option value="AA Khamanon Khurd">AA Khamanon Khurd</option>
+                <option value="AA Khera">AA Khera</option>
+                <option value="AA Khichipur">AA Khichipur</option>
+                <option value="AA Khokhar">AA Khokhar</option>
+                <option value="AA Khuian Sarwar">AA Khuian Sarwar</option>
+                <option value="AA Killi Nihal Singh Wala">AA Killi Nihal Singh Wala</option>
+                <option value="AA Kollianwali">AA Kollianwali</option>
+                <option value="AA Kusla">AA Kusla</option>
+                <option value="AA Madhir">AA Madhir</option>
+                <option value="AA Madhopur">AA Madhopur</option>
+                <option value="AA Majri">AA Majri</option>
+                <option value="AA Makhangarh">AA Makhangarh</option>
+                <option value="AA Manal">AA Manal</option>
+                <option value="AA Manawan">AA Manawan</option>
+                <option value="AA Mander">AA Mander</option>
+                <option value="AA Mander Dona">AA Mander Dona</option>
+                <option value="AA Manoli Surat">AA Manoli Surat</option>
+                <option value="AA Mayo Patti">AA Mayo Patti</option>
+                <option value="AA Mehal Kalan">AA Mehal Kalan</option>
+                <option value="AA Moonak">AA Moonak</option>
+                <option value="AA Mullianwal">AA Mullianwal</option>
+                <option value="AA Navan Quilla">AA Navan Quilla</option>
+                <option value="AA Padampur 31BB">AA Padampur 31BB</option>
+                <option value="AA Pawen (Chingra)">AA Pawen (Chingra)</option>
+                <option value="AA Phaphre Bhai Ke">AA Phaphre Bhai Ke</option>
+                <option value="AA Play school Ambala">AA Play school Ambala</option>
+                <option value="AA Puranewala">AA Puranewala</option>
+                <option value="AA Rachhin">AA Rachhin</option>
+                <option value="AA Raipur Peer Baksh Wala">AA Raipur Peer Baksh Wala</option>
+                <option value="AA Rajia">AA Rajia</option>
+                <option value="AA Rampur Narotampur">AA Rampur Narotampur</option>
+                <option value="AA Rampur Sunra">AA Rampur Sunra</option>
+                <option value="AA Ramsinghpur">AA Ramsinghpur</option>
+                <option value="AA Ranno">AA Ranno</option>
+                <option value="AA Rasulpur Bait">AA Rasulpur Bait</option>
+                <option value="AA Ratolan">AA Ratolan</option>
+                <option value="AA Ratta Khera">AA Ratta Khera</option>
+                <option value="AA Rattian">AA Rattian</option>
+                <option value="AA Reeth Kheri">AA Reeth Kheri</option>
+                <option value="AA Rori">AA Rori</option>
+                <option value="AA Salam Khera">AA Salam Khera</option>
+                <option value="AA Sangha">AA Sangha</option>
+                <option value="AA Saniana">AA Saniana</option>
+                <option value="AA Santgarh">AA Santgarh</option>
+                <option value="AA Seona">AA Seona</option>
+                <option value="AA Sheron Bagha">AA Sheron Bagha</option>
+                <option value="AA Sowaddi Kalan">AA Sowaddi Kalan</option>
+                <option value="AA Sri Muktsar Sahib">AA Sri Muktsar Sahib</option>
+                <option value="AA Sujanpur">AA Sujanpur</option>
+                <option value="AA Sukhanwala">AA Sukhanwala</option>
+                <option value="AA Teja Singh Wala">AA Teja Singh Wala</option>
+                <option value="AA Telipura">AA Telipura</option>
+                <option value="AA Theh Kalandhar">AA Theh Kalandhar</option>
+                <option value="AA Tibber">AA Tibber</option>
+                <option value="AA Ubhia">AA Ubhia</option>
+                <option value="AA Uddat Saidewala">AA Uddat Saidewala</option>
+                <option value="AA Vachhoa">AA Vachhoa</option>
               </select>
             </div>
           </div>
