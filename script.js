@@ -61,6 +61,7 @@
       studentName: "",
       studentClass: "",
       studentSection: "",
+      studentAcademy: "",
       hasSubmitted: false,       // guards against ever posting the same session twice
       history: [],              // array of spin log entries, see logSpin()
       experimentStartTime: null,
@@ -400,6 +401,7 @@
     els.studentNameInput = document.getElementById("studentNameInput");
     els.studentClassSelect = document.getElementById("studentClassSelect");
     els.studentSectionSelect = document.getElementById("studentSectionSelect");
+    els.studentAcademySelect = document.getElementById("studentAcademySelect");
     els.identityCard = document.getElementById("identityCard");
     els.beginButton = document.getElementById("beginButton");
     els.submitStatus = document.getElementById("submitStatus");
@@ -457,13 +459,13 @@
   }
 
   // "Game N" always reflects the round the student is about to play (or just
-  // played); MP is the fixed points every round starts from — it never
-  // changes, since nothing carries over between spins.
+  // played); the points line is the fixed amount every round starts from —
+  // it never changes, since nothing carries over between spins.
   function renderGameHeading() {
     if (!els.gameTitle) return;
     const gameNumber = Math.min(state.gameCount + 1, CONFIG.maxGames);
     els.gameTitle.textContent = `Game ${gameNumber}`;
-    els.gameMp.textContent = `MP : ${CONFIG.initialScore}`;
+    els.gameMp.textContent = `You have ${CONFIG.initialScore} points for this round`;
   }
 
   // Updates the progress bar against the hard maxGames cap, keeps the spin
@@ -487,12 +489,17 @@
   // Spins taken" readout bar — same numbers, spelled out plainly, with the
   // dynamic value shown big AND spelled out as a full MP calculation
   // (40 + 10 = 50 / 40 − N = ...) so the arithmetic is never left implicit.
+  // The final total in each equation starts at 0 and is counted up to its
+  // real value by animateRoundPreviewNumbers() — a visible "clock starting"
+  // cue that a fresh round has begun, rather than the numbers just appearing.
   function renderNextRoundPreview() {
     if (!els.nextRoundCard) return;
     if (state.gameCount >= CONFIG.maxGames) {
       els.nextRoundCard.innerHTML = `
-        <p class="instruction-line">No spins left &mdash; results coming up.</p>
+        <p class="instruction-line">No games left &mdash; results coming up.</p>
       `;
+      els.winResultValue = null;
+      els.lossResultValue = null;
     } else {
       const mp = CONFIG.initialScore;
       const winTotal = mp + CONFIG.greenReward;
@@ -504,7 +511,7 @@
             <span class="dot dot-green" aria-hidden="true"></span>
             If the wheel lands on <strong>green</strong>, you win <span class="pts-gain">+${CONFIG.greenReward}</span>
           </p>
-          <p class="instruction-value pts-gain">${mp} + ${CONFIG.greenReward} = ${winTotal}</p>
+          <p class="instruction-value pts-gain">${mp} + ${CONFIG.greenReward} = <span class="instruction-result" id="winResultValue" data-target="${winTotal}">0</span></p>
         </div>
         <div class="instruction-col instruction-col-red">
           <svg class="sweep-svg" aria-hidden="true"><rect class="sweep-rect" x="1" y="1" width="99%" height="99%" rx="17" ry="17" pathLength="100"></rect></svg>
@@ -512,11 +519,52 @@
             <span class="dot dot-red" aria-hidden="true"></span>
             If the wheel lands on <strong>red</strong>, you lose <span class="pts-loss" id="nextLossValue">\u2212${state.nextRedPenalty}</span>
           </p>
-          <p class="instruction-value pts-loss" id="nextLossEquation">${mp} \u2212 ${state.nextRedPenalty} = ${lossTotal}</p>
+          <p class="instruction-value pts-loss" id="nextLossEquation">${mp} \u2212 ${state.nextRedPenalty} = <span class="instruction-result" id="lossResultValue" data-target="${lossTotal}">0</span></p>
         </div>
       `;
       els.nextLossValue = document.getElementById("nextLossValue");
       els.nextLossEquation = document.getElementById("nextLossEquation");
+      els.winResultValue = document.getElementById("winResultValue");
+      els.lossResultValue = document.getElementById("lossResultValue");
+    }
+  }
+
+  const prefersReducedMotion = window.matchMedia &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // Counts a single number span up from 0 to its target with an ease-out
+  // curve (fast start, gentle settle) — the classic "odometer" counter feel.
+  function animateCountUp(el, targetValue, durationMs) {
+    if (!el) return;
+    if (prefersReducedMotion) {
+      el.textContent = targetValue;
+      return;
+    }
+    const startTime = performance.now();
+    function step(now) {
+      const progress = Math.min(1, (now - startTime) / durationMs);
+      const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+      el.textContent = String(Math.round(targetValue * eased));
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      } else {
+        el.textContent = String(targetValue);
+      }
+    }
+    requestAnimationFrame(step);
+  }
+
+  // Kicks off the counter animation on both the green and red equation
+  // totals — called right when a round becomes the one the student is
+  // actively looking at (session start, and after every game-to-game
+  // transition), so the numbers visibly "start counting" for the new round
+  // rather than for the round that just ended.
+  function animateRoundPreviewNumbers() {
+    if (els.winResultValue) {
+      animateCountUp(els.winResultValue, Number(els.winResultValue.dataset.target), 700);
+    }
+    if (els.lossResultValue) {
+      animateCountUp(els.lossResultValue, Number(els.lossResultValue.dataset.target), 700);
     }
   }
 
@@ -537,6 +585,7 @@
       if (els.decisionQuestion) {
         els.decisionQuestion.textContent = `Would you like to spin the wheel, or keep your ${CONFIG.initialScore} points?`;
       }
+      animateRoundPreviewNumbers(); // counter starts ticking right as the new round appears
       state.readyTimestamp = Date.now();
       els.spinButton.focus();
     });
@@ -813,7 +862,7 @@
   }
 
   function renderResultsScreen(totalDurationMs) {
-    els.resultsIdentity.textContent = `${state.studentName} \u00b7 Class ${state.studentClass}-${state.studentSection}`;
+    els.resultsIdentity.textContent = `${state.studentName} \u00b7 Class ${state.studentClass}-${state.studentSection} \u00b7 ${state.studentAcademy}`;
 
     const summaryItems = [
       { label: "Games played", value: state.gameCount, accent: "" },
@@ -860,6 +909,7 @@
       studentName: state.studentName,
       studentClass: state.studentClass,
       studentSection: state.studentSection,
+      studentAcademy: state.studentAcademy,
       // Computed for the teacher's records only — the app itself never shows
       // or tracks a running score anymore, since each spin starts fresh.
       finalScore: CONFIG.initialScore + state.totalGained - state.totalLost,
@@ -945,12 +995,13 @@
   function isReadyToBegin() {
     return els.studentNameInput.value.trim().length > 0 &&
       els.studentClassSelect.value !== "" &&
-      els.studentSectionSelect.value !== "";
+      els.studentSectionSelect.value !== "" &&
+      els.studentAcademySelect.value !== "";
   }
 
   function showIdentityError() {
     els.identityCard.classList.add("has-error");
-    els.submitStatus.textContent = "Please fill in your name, class, and section to begin.";
+    els.submitStatus.textContent = "Please fill in your name, class, section, and academy to begin.";
     els.submitStatus.setAttribute("data-state", "error");
   }
 
@@ -981,6 +1032,7 @@
     state.studentName = els.studentNameInput.value.trim();
     state.studentClass = els.studentClassSelect.value;
     state.studentSection = els.studentSectionSelect.value;
+    state.studentAcademy = els.studentAcademySelect.value;
     state.experimentStartTime = Date.now();
     state.readyTimestamp = Date.now();
 
@@ -1011,6 +1063,7 @@
     els.submitStatus.removeAttribute("data-state");
 
     showScreen(els.experimentScreen);
+    animateRoundPreviewNumbers(); // counter starts ticking for Game 1 too
   }
 
   function handleRestart() {
@@ -1020,6 +1073,7 @@
     els.studentNameInput.value = "";
     els.studentClassSelect.selectedIndex = 0;
     els.studentSectionSelect.selectedIndex = 0;
+    els.studentAcademySelect.selectedIndex = 0;
     clearIdentityError();
     els.resultsSubmitStatus.textContent = "";
     els.resultsSubmitStatus.removeAttribute("data-state");
@@ -1032,6 +1086,7 @@
     els.studentNameInput.addEventListener("input", handleIdentityFieldChange);
     els.studentClassSelect.addEventListener("change", handleIdentityFieldChange);
     els.studentSectionSelect.addEventListener("change", handleIdentityFieldChange);
+    els.studentAcademySelect.addEventListener("change", handleIdentityFieldChange);
     els.beginButton.addEventListener("click", handleBegin);
 
     els.spinButton.addEventListener("click", handleSpinClick);
