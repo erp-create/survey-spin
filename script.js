@@ -21,7 +21,7 @@
     initialScore: 40,          // starting score
     greenReward: 10,           // points added on a win (every time, flat)
     penaltySequence: [2, 4, 8, 16, 32], // loss penalty, in order — doubles each time, never resets
-    numSegments: 10,           // must be even — alternates red/green, 50/50 area
+    numSegments: 4,            // must be even — alternates green/red, 50/50 area (4 = green, red, green, red)
     maxGames: 5,                // hard cap on total games (whether spun or kept) in one session
     gameTransitionSlideInMs: 550,   // "Game N" flash: slide-in duration (decelerating into center)
     gameTransitionHoldMs: 600,      // how long it holds dead-center before sliding out
@@ -367,31 +367,11 @@
 
   /* ---------------------------- 7. SCREEN / UI CONTROL -------------------------- */
 
-  // Toggles whether the wheel is visible. Hidden = at rest, waiting on a
-  // decision (start of session, between spins). Visible = actively spinning
-  // / showing a just-landed result, so the segment layout can't be studied
-  // ahead of a decision.
-  function setWheelVisible(visible) {
-    if (!els.wheelStage) return;
-    els.wheelStage.classList.toggle("is-hidden", !visible);
-    if (visible) {
-      els.wheelStage.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  }
-
   function triggerShake(el) {
     el.classList.remove("is-shaking");
     // eslint-disable-next-line no-unused-expressions
     void el.offsetWidth;
     el.classList.add("is-shaking");
-  }
-
-  function triggerSweep(el) {
-    if (!el) return;
-    el.classList.remove("is-sweeping");
-    // eslint-disable-next-line no-unused-expressions
-    void el.offsetWidth; // force reflow so the animation can restart cleanly every time
-    el.classList.add("is-sweeping");
   }
 
   const els = {}; // populated in cacheElements()
@@ -413,13 +393,14 @@
     els.stopButton = document.getElementById("stopButton");
     els.progressFill = document.getElementById("progressFill");
     els.progressTrack = document.getElementById("progressTrack");
-    els.gameTitle = document.getElementById("gameTitle");
-    els.gameMp = document.getElementById("gameMp");
+    els.gameIntro = document.getElementById("gameIntro");
+    els.outcomeGreen = document.getElementById("outcomeGreen");
+    els.outcomeRed = document.getElementById("outcomeRed");
+    els.gainValue = document.getElementById("gainValue");
+    els.lossValue = document.getElementById("lossValue");
+    els.keepNote = document.getElementById("keepNote");
     els.wheelStage = document.getElementById("wheelStage");
     els.newGameBanner = document.getElementById("newGameBanner");
-    els.nextRoundCard = document.getElementById("nextRoundCard");
-    els.nextLossValue = document.getElementById("nextLossValue");
-    els.nextLossEquation = document.getElementById("nextLossEquation");
     els.decisionQuestion = document.getElementById("decisionQuestion");
 
     els.summaryGrid = document.getElementById("summaryGrid");
@@ -480,10 +461,28 @@
   // played); the points line is the fixed amount every round starts from —
   // it never changes, since nothing carries over between spins.
   function renderGameHeading() {
-    if (!els.gameTitle) return;
-    const gameNumber = Math.min(state.gameCount + 1, CONFIG.maxGames);
-    els.gameTitle.textContent = `Game ${gameNumber}`;
-    els.gameMp.innerHTML = `You have <strong>${CONFIG.initialScore} points</strong> for this game.`;
+    // The only heading text: "Let's play a game!" first, then "Let's play another game!".
+    if (els.newGameBanner) {
+      els.newGameBanner.textContent = state.gameCount === 0
+        ? "Let\u2019s play a game!"
+        : "Let\u2019s play another game!";
+    }
+    renderChoicePanel();
+  }
+
+  // Fills the numbers in the game text from CONFIG / current state. Clears
+  // any highlight left over from the previous game's result.
+  function renderChoicePanel() {
+    const start = CONFIG.initialScore;
+    els.gameIntro.innerHTML =
+      `You will start with <strong>${start} points</strong>. Here is a wheel that is half ` +
+      `<span class="word-red">RED</span> and half <span class="word-green">GREEN</span>.`;
+    els.gainValue.textContent = `${CONFIG.greenReward} points`;
+    els.lossValue.textContent = `${state.nextRedPenalty} points`;
+    els.keepNote.innerHTML =
+      `If you choose <strong>DO NOT SPIN</strong>, you keep your <strong>${start} points</strong> and nothing changes.`;
+    els.outcomeGreen.classList.remove("is-hit-green");
+    els.outcomeRed.classList.remove("is-hit-red");
   }
 
   // Updates the progress bar against the hard maxGames cap, keeps the spin
@@ -502,52 +501,6 @@
       els.spinButton.textContent = "All games played";
       els.spinButton.disabled = true;
       if (els.stopButton) els.stopButton.disabled = true;
-    }
-
-    renderNextRoundPreview();
-  }
-
-  // The instruction card that replaces the old compact "If green / If red /
-  // Spins taken" readout bar — same numbers, spelled out plainly, with the
-  // dynamic value shown big AND spelled out as a full MP calculation
-  // (40 + 10 = 50 / 40 − N = ...) so the arithmetic is never left implicit.
-  // The final total in each equation starts at 0 and is counted up to its
-  // real value by animateRoundPreviewNumbers() — a visible "clock starting"
-  // cue that a fresh round has begun, rather than the numbers just appearing.
-  function renderNextRoundPreview() {
-    if (!els.nextRoundCard) return;
-    if (state.gameCount >= CONFIG.maxGames) {
-      els.nextRoundCard.innerHTML = `
-        <p class="instruction-line">No games left &mdash; results coming up.</p>
-      `;
-      els.winResultValue = null;
-      els.lossResultValue = null;
-    } else {
-      const mp = CONFIG.initialScore;
-      const winTotal = mp + CONFIG.greenReward;
-      const lossTotal = mp - state.nextRedPenalty;
-      els.nextRoundCard.innerHTML = `
-        <div class="instruction-col instruction-col-green">
-          <svg class="sweep-svg" aria-hidden="true"><rect class="sweep-rect" x="1" y="1" width="99%" height="99%" rx="17" ry="17" pathLength="100"></rect></svg>
-          <p class="instruction-line">
-            <span class="dot dot-green" aria-hidden="true"></span>
-            If the wheel lands on <strong>green</strong>, you win <span class="pts-gain">+${CONFIG.greenReward}</span>
-          </p>
-          <p class="instruction-value pts-gain">${mp} + ${CONFIG.greenReward} = <span class="instruction-result" id="winResultValue" data-target="${winTotal}">0</span></p>
-        </div>
-        <div class="instruction-col instruction-col-red">
-          <svg class="sweep-svg" aria-hidden="true"><rect class="sweep-rect" x="1" y="1" width="99%" height="99%" rx="17" ry="17" pathLength="100"></rect></svg>
-          <p class="instruction-line">
-            <span class="dot dot-red" aria-hidden="true"></span>
-            If the wheel lands on <strong>red</strong>, you lose <span class="pts-loss" id="nextLossValue">\u2212${state.nextRedPenalty}</span>
-          </p>
-          <p class="instruction-value pts-loss" id="nextLossEquation">${mp} \u2212 ${state.nextRedPenalty} = <span class="instruction-result" id="lossResultValue" data-target="${lossTotal}">0</span></p>
-        </div>
-      `;
-      els.nextLossValue = document.getElementById("nextLossValue");
-      els.nextLossEquation = document.getElementById("nextLossEquation");
-      els.winResultValue = document.getElementById("winResultValue");
-      els.lossResultValue = document.getElementById("lossResultValue");
     }
   }
 
@@ -576,20 +529,6 @@
     requestAnimationFrame(step);
   }
 
-  // Kicks off the counter animation on both the green and red equation
-  // totals — called right when a round becomes the one the student is
-  // actively looking at (session start, and after every game-to-game
-  // transition), so the numbers visibly "start counting" for the new round
-  // rather than for the round that just ended.
-  function animateRoundPreviewNumbers() {
-    if (els.winResultValue) {
-      animateCountUp(els.winResultValue, Number(els.winResultValue.dataset.target), 700);
-    }
-    if (els.lossResultValue) {
-      animateCountUp(els.lossResultValue, Number(els.lossResultValue.dataset.target), 700);
-    }
-  }
-
   /* ------------------------------ Game-to-game transition ------------------------ *
    * Shared by both the "just spun" and "just kept points" paths: plays the
    * "Game N" flash — slides in from the right, decelerating into the
@@ -601,7 +540,6 @@
     // The screen is swapped to the next game while the overlay fully covers
     // it, so the student never sees the old round's card change underneath.
     playGameTransition(upcomingGameNumber, prepareNextGame).then(() => {
-      animateRoundPreviewNumbers(); // counter starts ticking right as the new round appears
       state.readyTimestamp = Date.now();
       els.spinButton.focus();
     });
@@ -611,21 +549,18 @@
   // buttons, prompt, and the "Let's play a new game." banner at the top.
   function prepareNextGame() {
     renderGameHeading();
-    updateProgressUI(); // rebuilds the instruction card for the new game
-    setWheelVisible(false);
+    updateProgressUI();
     els.spinButton.textContent = "Spin the wheel";
     els.spinButton.disabled = false;
-    els.stopButton.textContent = `Keep my ${CONFIG.initialScore} points`;
+    els.stopButton.textContent = "Do not spin the wheel";
     els.stopButton.disabled = false;
     setDecisionPrompt();
-    setNewGameBanner(true);
     window.scrollTo(0, 0);
   }
 
   function setDecisionPrompt() {
     if (!els.decisionQuestion) return;
-    els.decisionQuestion.classList.remove("is-result", "result-gain", "result-loss");
-    els.decisionQuestion.textContent = `Would you like to spin the wheel, or keep your ${CONFIG.initialScore} points?`;
+    els.decisionQuestion.textContent = "What would you like to do?";
   }
 
   /* ------------------------- Per-game result popup -------------------------- *
@@ -637,7 +572,7 @@
     const kind = entry.wheelResult; // "green" | "red" | "kept"
     els.roundBadge.className = "final-badge" + (kind === "red" ? " is-red" : kind === "kept" ? " is-kept" : "");
     els.roundBadge.textContent = kind === "red" ? "\u2715" : "\u2713";
-    els.roundEyebrow.textContent = `Game ${entry.spinNumber} result`;
+    els.roundEyebrow.textContent = "Your result";
     // The sum, spelled out the same way as on the instruction card.
     const start = entry.scoreBefore;
     const change = Math.abs(entry.pointsDelta);
@@ -660,12 +595,6 @@
   function holdResultThenContinue(entry, popupDelayMs, next) {
     setTimeout(() => showRoundPopup(entry), popupDelayMs);
     setTimeout(() => { hideRoundPopup(); next(); }, CONFIG.resultHoldMs);
-  }
-
-  function setNewGameBanner(visible) {
-    if (!els.newGameBanner) return;
-    els.newGameBanner.textContent = visible ? "Let\u2019s play a new game." : "";
-    els.newGameBanner.classList.toggle("is-visible", visible);
   }
 
   // Returns a Promise that resolves once the flash has fully cleared.
@@ -719,10 +648,8 @@
     const reactionTimeMs = Date.now() - state.readyTimestamp;
 
     state.isSpinning = true;
-    setNewGameBanner(false);
     els.spinButton.disabled = true;
     els.stopButton.disabled = true;
-    setWheelVisible(true); // reveal the wheel the instant a spin is committed to
     playSpinStartSound();
 
     const outcome = determineOutcome();
@@ -740,12 +667,9 @@
     // the screen (see prepareNextGame).
     updateProgressBar();
 
-    // Sweep only the box matching what actually happened — a quick trace
-    // around its border, fired fresh every spin.
-    const sweepTarget = els.nextRoundCard.querySelector(
-      outcome === "green" ? ".instruction-col-green" : ".instruction-col-red"
-    );
-    triggerSweep(sweepTarget);
+    // Highlight the line that matches what actually happened.
+    if (outcome === "green") els.outcomeGreen.classList.add("is-hit-green");
+    else els.outcomeRed.classList.add("is-hit-red");
 
     if (outcome === "green") {
       playGreenSound();
@@ -816,7 +740,6 @@
     const entry = logKeptRound(reactionTimeMs);
     escalatePenaltyAfterGame();
 
-    setNewGameBanner(false);
     updateProgressBar();
 
     const reachedMaxGames = state.gameCount >= CONFIG.maxGames;
@@ -1207,10 +1130,8 @@
     }
 
     renderExperimentReadouts();
-    setWheelVisible(false);
-    els.stopButton.textContent = `Keep my ${CONFIG.initialScore} points`;
+    els.stopButton.textContent = "Do not spin the wheel";
     setDecisionPrompt();
-    setNewGameBanner(false);
     els.spinButton.textContent = "Spin the wheel";
     els.spinButton.disabled = false;
     els.stopButton.disabled = false;
@@ -1218,7 +1139,13 @@
     els.submitStatus.removeAttribute("data-state");
 
     showScreen(els.experimentScreen);
-    animateRoundPreviewNumbers(); // counter starts ticking for Game 1 too
+
+    // "Game 1" slides across at the very start, just like Games 2–5 do later.
+    // The student's reaction timer starts once the slide has cleared.
+    playGameTransition(1).then(() => {
+      state.readyTimestamp = Date.now();
+      els.spinButton.focus();
+    });
   }
 
   function handleRestart() {

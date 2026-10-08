@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="style.css?v=20261009">
+<link rel="stylesheet" href="style.css?v=20261013">
 <link rel="icon" type="image/png" href="akal-academy-logo.png">
 </head>
 <body>
@@ -243,55 +243,61 @@
       <h1 id="experimentTitle" class="visually-hidden">Spin the wheel</h1>
 
       <div class="game-heading">
-        <!-- "Game N" and (from game 2 on) "Let's play a new game." share one row. -->
-        <div class="game-head-row">
-          <p class="game-title" id="gameTitle">Game 1</p>
-          <p class="new-game-banner" id="newGameBanner" aria-live="polite"></p>
-        </div>
-        <p class="game-mp" id="gameMp">You have <strong>40 points</strong> for this game.</p>
+        <!-- Only this line: "Let's play a game!" first, then "Let's play another game!". -->
+        <p class="game-title" id="newGameBanner" aria-live="polite">Let&rsquo;s play a game!</p>
       </div>
 
-      <!-- Replaces the old compact "If green / If red / Spins taken" readout
-           bar — same information, spelled out plainly with the dynamic
-           numbers shown big. -->
-      <div class="instruction-card" id="nextRoundCard" aria-live="polite">
-        <div class="instruction-col instruction-col-green">
-          <svg class="sweep-svg" aria-hidden="true"><rect class="sweep-rect" x="1" y="1" width="99%" height="99%" rx="17" ry="17" pathLength="100"></rect></svg>
-          <p class="instruction-line">
-            <span class="dot dot-green" aria-hidden="true"></span>
-            If the wheel lands on <strong>green</strong>, you win <span class="pts-gain">+10</span>
+      <div class="game-main">
+        <div class="game-left">
+          <p class="game-intro" id="gameIntro">
+            You will start with <strong>40 points</strong>. Here is a wheel that is half
+            <span class="word-red">RED</span> and half <span class="word-green">GREEN</span>.
           </p>
-          <p class="instruction-value pts-gain">40 + 10 = 50</p>
+
+          <!-- The wheel is always on screen and stays still until a spin is chosen. -->
+          <div class="wheel-stage wheel-stage-board" id="wheelStage">
+            <div class="wheel-pointer" aria-hidden="true"></div>
+            <div class="wheel-container">
+              <svg id="wheelSvg" viewBox="0 0 400 400" role="img" aria-label="Wheel that is half red and half green">
+                <g id="wheelGroup"></g>
+              </svg>
+            </div>
+          </div>
         </div>
-        <div class="instruction-col instruction-col-red">
-          <svg class="sweep-svg" aria-hidden="true"><rect class="sweep-rect" x="1" y="1" width="99%" height="99%" rx="17" ry="17" pathLength="100"></rect></svg>
-          <p class="instruction-line">
-            <span class="dot dot-red" aria-hidden="true"></span>
-            If the wheel lands on <strong>red</strong>, you lose <span class="pts-loss" id="nextLossValue">&minus;2</span>
+
+        <div class="game-right">
+      <div class="choice-lead">
+        <p class="choice-lead-title">You have to make a choice:</p>
+        <p class="decision-question" id="decisionQuestion">What would you like to do?</p>
+      </div>
+
+      <div class="choice-cards">
+        <section class="choice-card choice-card-spin" aria-labelledby="spinCardTitle">
+          <h2 class="choice-card-title" id="spinCardTitle"><strong>SPIN</strong> the wheel</h2>
+          <p class="choice-card-sub">If you choose to <strong>SPIN</strong>:</p>
+          <ul class="outcome-list">
+            <li class="outcome outcome-green" id="outcomeGreen">
+              <span class="outcome-icon" aria-hidden="true">&#128994;</span>
+              <span>If the wheel lands on <strong>GREEN</strong>, you gain <span class="pts-gain" id="gainValue">10 points</span>.</span>
+            </li>
+            <li class="outcome outcome-red" id="outcomeRed">
+              <span class="outcome-icon" aria-hidden="true">&#128308;</span>
+              <span>If the wheel lands on <strong>RED</strong>, you lose <span class="pts-loss" id="lossValue">2 points</span>.</span>
+            </li>
+          </ul>
+          <button id="spinButton" class="btn btn-primary btn-large" type="button">Spin the wheel</button>
+        </section>
+
+        <div class="choice-or" aria-hidden="true"><span>OR</span></div>
+
+        <section class="choice-card choice-card-keep" aria-labelledby="keepCardTitle">
+          <h2 class="choice-card-title" id="keepCardTitle"><strong>DO NOT SPIN</strong> the wheel</h2>
+          <p class="choice-card-sub" id="keepNote">
+            If you choose <strong>DO NOT SPIN</strong>, you keep your <strong>40 points</strong> and nothing changes.
           </p>
-          <p class="instruction-value pts-loss" id="nextLossEquation">40 &minus; 2 = 38</p>
-        </div>
+          <button id="stopButton" class="btn btn-primary btn-large" type="button">Do not spin the wheel</button>
+        </section>
       </div>
-
-      <p class="decision-question" id="decisionQuestion">Would you like to spin the wheel, or keep your 40 points?</p>
-
-      <div class="controls">
-        <button id="spinButton" class="btn btn-primary btn-large" type="button">
-          Spin the wheel
-        </button>
-        <button id="stopButton" class="btn btn-primary btn-large" type="button">
-          Keep my 40 points
-        </button>
-      </div>
-
-      <!-- Wheel stays hidden until the student commits to a spin, so the
-           segment layout can't be studied ahead of a decision. -->
-      <div class="wheel-stage wheel-stage-solo is-hidden" id="wheelStage">
-        <div class="wheel-pointer" aria-hidden="true"></div>
-        <div class="wheel-container">
-          <svg id="wheelSvg" viewBox="0 0 400 400" role="img" aria-label="Spinning wheel with alternating red and green segments">
-            <g id="wheelGroup"></g>
-          </svg>
         </div>
       </div>
 
@@ -351,7 +357,7 @@
     </div>
     <div class="modal-actions">
       <button id="checkpointContinueButton" class="btn btn-primary" type="button">Keep spinning</button>
-      <button id="checkpointStopButton" class="btn btn-ghost" type="button">Keep my points &amp; see results</button>
+      <button id="checkpointStopButton" class="btn btn-ghost" type="button">Do not spin &amp; see results</button>
     </div>
   </div>
 </div>
@@ -359,14 +365,14 @@
 <!-- Stop-experiment confirmation dialog -->
 <div id="confirmModal" class="modal-overlay" hidden>
   <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="confirmModalTitle" aria-describedby="confirmModalBody">
-    <h2 id="confirmModalTitle">Keep your points for this game?</h2>
+    <h2 id="confirmModalTitle">Do not spin the wheel?</h2>
     <p id="confirmModalBody">
-      You won't spin in this game, so your points stay as they are.
+      You will keep your 40 points and nothing changes in this game.
       Play then moves on to the next game.
     </p>
     <div class="modal-actions">
-      <button id="confirmStopButton" class="btn btn-primary" type="button">Yes, keep my points</button>
-      <button id="cancelStopButton" class="btn btn-ghost" type="button">Keep going</button>
+      <button id="confirmStopButton" class="btn btn-primary" type="button">Yes, do not spin</button>
+      <button id="cancelStopButton" class="btn btn-ghost" type="button">Go back</button>
     </div>
   </div>
 </div>
@@ -376,7 +382,7 @@
 <div id="roundModal" class="modal-overlay final-overlay" hidden>
   <div class="modal final-modal round-modal" role="status" aria-live="polite">
     <div class="final-badge" id="roundBadge" aria-hidden="true">&#10003;</div>
-    <p class="final-eyebrow" id="roundEyebrow">Game 1 result</p>
+    <p class="final-eyebrow" id="roundEyebrow">Your result</p>
     <p class="final-points">You got <span class="final-points-number" id="roundPointsValue">0</span> points</p>
     <p class="final-calc" id="roundCalc"></p>
     <p class="final-sub" id="roundSub"></p>
@@ -409,6 +415,6 @@
   </div>
 </div>
 
-<script src="script.js?v=20261009"></script>
+<script src="script.js?v=20261013"></script>
 </body>
 </html>
