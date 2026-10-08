@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="style.css?v=20261013">
+<link rel="stylesheet" href="style.css?v=20261014">
 <link rel="icon" type="image/png" href="akal-academy-logo.png">
 </head>
 <body>
@@ -247,58 +247,50 @@
         <p class="game-title" id="newGameBanner" aria-live="polite">Let&rsquo;s play a game!</p>
       </div>
 
-      <div class="game-main">
-        <div class="game-left">
-          <p class="game-intro" id="gameIntro">
-            You will start with <strong>40 points</strong>. Here is a wheel that is half
-            <span class="word-red">RED</span> and half <span class="word-green">GREEN</span>.
-          </p>
+      <p class="game-intro" id="gameIntro">
+        You will start with <strong>40 points</strong>. Here is a wheel that is half
+        <span class="word-red">RED</span> and half <span class="word-green">GREEN</span>.
+      </p>
 
-          <!-- The wheel is always on screen and stays still until a spin is chosen. -->
-          <div class="wheel-stage wheel-stage-board" id="wheelStage">
-            <div class="wheel-pointer" aria-hidden="true"></div>
-            <div class="wheel-container">
-              <svg id="wheelSvg" viewBox="0 0 400 400" role="img" aria-label="Wheel that is half red and half green">
-                <g id="wheelGroup"></g>
-              </svg>
-            </div>
-          </div>
+      <!-- The wheel is always on screen and stays still until a spin is chosen. -->
+      <div class="wheel-stage wheel-stage-board" id="wheelStage">
+        <div class="wheel-pointer" aria-hidden="true"></div>
+        <div class="wheel-container">
+          <svg id="wheelSvg" viewBox="0 0 400 400" role="img" aria-label="Wheel that is half red and half green">
+            <g id="wheelGroup"></g>
+          </svg>
         </div>
-
-        <div class="game-right">
-      <div class="choice-lead">
-        <p class="choice-lead-title">You have to make a choice:</p>
-        <p class="decision-question" id="decisionQuestion">What would you like to do?</p>
       </div>
 
-      <div class="choice-cards">
-        <section class="choice-card choice-card-spin" aria-labelledby="spinCardTitle">
-          <h2 class="choice-card-title" id="spinCardTitle"><strong>SPIN</strong> the wheel</h2>
-          <p class="choice-card-sub">If you choose to <strong>SPIN</strong>:</p>
-          <ul class="outcome-list">
-            <li class="outcome outcome-green" id="outcomeGreen">
-              <span class="outcome-icon" aria-hidden="true">&#128994;</span>
-              <span>If the wheel lands on <strong>GREEN</strong>, you gain <span class="pts-gain" id="gainValue">10 points</span>.</span>
-            </li>
-            <li class="outcome outcome-red" id="outcomeRed">
-              <span class="outcome-icon" aria-hidden="true">&#128308;</span>
-              <span>If the wheel lands on <strong>RED</strong>, you lose <span class="pts-loss" id="lossValue">2 points</span>.</span>
-            </li>
-          </ul>
-          <button id="spinButton" class="btn btn-primary btn-large" type="button">Spin the wheel</button>
-        </section>
+      <div class="choice-flow" id="choiceFlow">
+        <p class="choice-heading">You have to make a choice:</p>
+        <ul class="choice-list">
+          <li><strong>SPIN</strong> the wheel, or</li>
+          <li><strong>DO NOT SPIN</strong> the wheel.</li>
+        </ul>
 
-        <div class="choice-or" aria-hidden="true"><span>OR</span></div>
+        <p class="choice-heading">If you choose to <strong>SPIN</strong>:</p>
+        <ul class="outcome-list">
+          <li class="outcome outcome-green" id="outcomeGreen">
+            <span class="outcome-icon" aria-hidden="true">&#128994;</span>
+            <span>If the wheel lands on <strong>GREEN</strong>, you gain <span class="pts-gain" id="gainValue">10 points</span>.</span>
+          </li>
+          <li class="outcome outcome-red" id="outcomeRed">
+            <span class="outcome-icon" aria-hidden="true">&#128308;</span>
+            <span>If the wheel lands on <strong>RED</strong>, you lose <span class="pts-loss" id="lossValue">2 points</span>.</span>
+          </li>
+        </ul>
 
-        <section class="choice-card choice-card-keep" aria-labelledby="keepCardTitle">
-          <h2 class="choice-card-title" id="keepCardTitle"><strong>DO NOT SPIN</strong> the wheel</h2>
-          <p class="choice-card-sub" id="keepNote">
-            If you choose <strong>DO NOT SPIN</strong>, you keep your <strong>40 points</strong> and nothing changes.
-          </p>
-          <button id="stopButton" class="btn btn-primary btn-large" type="button">Do not spin the wheel</button>
-        </section>
+        <p class="choice-note" id="keepNote">
+          If you choose <strong>DO NOT SPIN</strong>, you keep your <strong>40 points</strong> and nothing changes.
+        </p>
       </div>
-        </div>
+
+      <p class="decision-question" id="decisionQuestion">What would you like to do?</p>
+
+      <div class="controls">
+        <button id="spinButton" class="btn btn-primary btn-large" type="button">Spin the wheel</button>
+        <button id="stopButton" class="btn btn-primary btn-large" type="button">Do not spin the wheel</button>
       </div>
 
     </section>
@@ -415,6 +407,6 @@
   </div>
 </div>
 
-<script src="script.js?v=20261013"></script>
+<script src="script.js?v=20261014"></script>
 </body>
 </html>
