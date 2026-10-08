@@ -243,8 +243,12 @@
       <h1 id="experimentTitle" class="visually-hidden">Spin the wheel</h1>
 
       <div class="game-heading">
-        <p class="game-title" id="gameTitle">Game 1</p>
-        <p class="game-mp" id="gameMp">You have a total of <strong>40 points</strong>. You can choose to spin the wheel.</p>
+        <!-- "Game N" and (from game 2 on) "Let's play a new game." share one row. -->
+        <div class="game-head-row">
+          <p class="game-title" id="gameTitle">Game 1</p>
+          <p class="new-game-banner" id="newGameBanner" aria-live="polite"></p>
+        </div>
+        <p class="game-mp" id="gameMp">You have <strong>40 points</strong> for this game.</p>
       </div>
 
       <!-- Replaces the old compact "If green / If red / Spins taken" readout
@@ -275,7 +279,7 @@
         <button id="spinButton" class="btn btn-primary btn-large" type="button">
           Spin the wheel
         </button>
-        <button id="stopButton" class="btn btn-ghost" type="button">
+        <button id="stopButton" class="btn btn-primary btn-large" type="button">
           Keep my 40 points
         </button>
       </div>
@@ -361,6 +365,31 @@
       <button id="confirmStopButton" class="btn btn-primary" type="button">Yes, keep my points</button>
       <button id="cancelStopButton" class="btn btn-ghost" type="button">Keep going</button>
     </div>
+  </div>
+</div>
+
+<!-- Per-game result notification: shown after every game for the rest of
+     the result hold, then closes on its own. -->
+<div id="roundModal" class="modal-overlay final-overlay" hidden>
+  <div class="modal final-modal round-modal" role="status" aria-live="polite">
+    <div class="final-badge" id="roundBadge" aria-hidden="true">&#10003;</div>
+    <p class="final-eyebrow" id="roundEyebrow">Game 1 result</p>
+    <p class="final-points">You got <span class="final-points-number" id="roundPointsValue">0</span> points</p>
+    <p class="final-calc" id="roundCalc"></p>
+    <p class="final-sub" id="roundSub"></p>
+  </div>
+</div>
+
+<!-- Final-points notification: appears over a lightly blurred experiment
+     screen when the session ends; "See my results" opens the results screen. -->
+<div id="finalModal" class="modal-overlay final-overlay" hidden>
+  <div class="modal final-modal" role="alertdialog" aria-modal="true" aria-labelledby="finalModalTitle" aria-describedby="finalModalBody">
+    <div class="final-badge" aria-hidden="true">&#10003;</div>
+    <p class="final-eyebrow" id="finalModalTitle">Session complete</p>
+    <p class="final-points" id="finalModalBody">You got <span class="final-points-number" id="finalPointsValue">0</span> points</p>
+    <p class="final-calc" id="finalCalc"></p>
+    <p class="final-sub" id="finalSub"></p>
+    <button id="finalContinueButton" class="btn btn-primary btn-large" type="button">See my results</button>
   </div>
 </div>
 

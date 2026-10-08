@@ -30,6 +30,7 @@
       green: { fill: "#2f8f5b", strokeDark: "#1f6640" },
       red: { fill: "#c6473f", strokeDark: "#8f2f29" }
     },
+    resultHoldMs: 6500,         // how long a finished game's result stays on screen before the next-game slide (keep within 5000–8000)
     spinDurationMs: 4200,       // base animation duration
     minFullSpinTurns: 6,        // extra full rotations added per spin, for visual effect
     maxFullSpinTurns: 9,
@@ -413,6 +414,7 @@
     els.gameTitle = document.getElementById("gameTitle");
     els.gameMp = document.getElementById("gameMp");
     els.wheelStage = document.getElementById("wheelStage");
+    els.newGameBanner = document.getElementById("newGameBanner");
     els.nextRoundCard = document.getElementById("nextRoundCard");
     els.nextLossValue = document.getElementById("nextLossValue");
     els.nextLossEquation = document.getElementById("nextLossEquation");
@@ -429,6 +431,18 @@
     els.checkpointStats = document.getElementById("checkpointStats");
     els.checkpointContinueButton = document.getElementById("checkpointContinueButton");
     els.checkpointStopButton = document.getElementById("checkpointStopButton");
+
+    els.roundModal = document.getElementById("roundModal");
+    els.roundBadge = document.getElementById("roundBadge");
+    els.roundEyebrow = document.getElementById("roundEyebrow");
+    els.roundPointsValue = document.getElementById("roundPointsValue");
+    els.roundSub = document.getElementById("roundSub");
+    els.roundCalc = document.getElementById("roundCalc");
+    els.finalCalc = document.getElementById("finalCalc");
+    els.finalModal = document.getElementById("finalModal");
+    els.finalPointsValue = document.getElementById("finalPointsValue");
+    els.finalSub = document.getElementById("finalSub");
+    els.finalContinueButton = document.getElementById("finalContinueButton");
 
     els.confirmModal = document.getElementById("confirmModal");
     els.confirmStopButton = document.getElementById("confirmStopButton");
@@ -465,16 +479,20 @@
     if (!els.gameTitle) return;
     const gameNumber = Math.min(state.gameCount + 1, CONFIG.maxGames);
     els.gameTitle.textContent = `Game ${gameNumber}`;
-    els.gameMp.textContent = `You have ${CONFIG.initialScore} points for this round`;
+    els.gameMp.innerHTML = `You have <strong>${CONFIG.initialScore} points</strong> for this game.`;
   }
 
   // Updates the progress bar against the hard maxGames cap, keeps the spin
   // and stop buttons in sync once that cap is reached, and refreshes the
   // instruction card to match.
-  function updateProgressUI() {
+  function updateProgressBar() {
     const progressPct = Math.min(100, Math.round((state.gameCount / CONFIG.maxGames) * 100));
     els.progressFill.style.width = progressPct + "%";
     els.progressTrack.setAttribute("aria-valuenow", String(progressPct));
+  }
+
+  function updateProgressUI() {
+    updateProgressBar();
 
     if (state.gameCount >= CONFIG.maxGames) {
       els.spinButton.textContent = "All games played";
@@ -576,27 +594,83 @@
 
   function advanceToNextGame() {
     const upcomingGameNumber = Math.min(state.gameCount + 1, CONFIG.maxGames);
-    playGameTransition(upcomingGameNumber).then(() => {
-      setWheelVisible(false);
-      els.spinButton.textContent = "Spin the wheel";
-      els.spinButton.disabled = false;
-      els.stopButton.textContent = `Keep my ${CONFIG.initialScore} points`;
-      els.stopButton.disabled = false;
-      if (els.decisionQuestion) {
-        els.decisionQuestion.textContent = `Would you like to spin the wheel, or keep your ${CONFIG.initialScore} points?`;
-      }
+    // The screen is swapped to the next game while the overlay fully covers
+    // it, so the student never sees the old round's card change underneath.
+    playGameTransition(upcomingGameNumber, prepareNextGame).then(() => {
       animateRoundPreviewNumbers(); // counter starts ticking right as the new round appears
       state.readyTimestamp = Date.now();
       els.spinButton.focus();
     });
   }
 
+  // Everything that changes between games: heading, instruction card,
+  // buttons, prompt, and the "Let's play a new game." banner at the top.
+  function prepareNextGame() {
+    renderGameHeading();
+    updateProgressUI(); // rebuilds the instruction card for the new game
+    setWheelVisible(false);
+    els.spinButton.textContent = "Spin the wheel";
+    els.spinButton.disabled = false;
+    els.stopButton.textContent = `Keep my ${CONFIG.initialScore} points`;
+    els.stopButton.disabled = false;
+    setDecisionPrompt();
+    setNewGameBanner(true);
+    window.scrollTo(0, 0);
+  }
+
+  function setDecisionPrompt() {
+    if (!els.decisionQuestion) return;
+    els.decisionQuestion.classList.remove("is-result", "result-gain", "result-loss");
+    els.decisionQuestion.textContent = `Would you like to spin the wheel, or keep your ${CONFIG.initialScore} points?`;
+  }
+
+  /* ------------------------- Per-game result popup -------------------------- *
+   * After every game (spun or kept) a notification over a lightly blurred
+   * screen says how many points the student got for that game. It stays up
+   * for the rest of CONFIG.resultHoldMs, then closes and `next` runs. */
+
+  function showRoundPopup(entry) {
+    const kind = entry.wheelResult; // "green" | "red" | "kept"
+    els.roundBadge.className = "final-badge" + (kind === "red" ? " is-red" : kind === "kept" ? " is-kept" : "");
+    els.roundBadge.textContent = kind === "red" ? "\u2715" : "\u2713";
+    els.roundEyebrow.textContent = `Game ${entry.spinNumber} result`;
+    // The sum, spelled out the same way as on the instruction card.
+    const start = entry.scoreBefore;
+    const change = Math.abs(entry.pointsDelta);
+    els.roundCalc.className = "final-calc " + (kind === "green" ? "gain" : kind === "red" ? "loss" : "kept");
+    els.roundCalc.textContent = kind === "red"
+      ? `${start} \u2212 ${change} = ${entry.scoreAfter}`
+      : `${start} + ${change} = ${entry.scoreAfter}`;
+    els.roundSub.textContent = kind === "green" ? `You started with ${start} points and the wheel landed on green, so you won ${change}.`
+      : kind === "red" ? `You started with ${start} points and the wheel landed on red, so you lost ${change}.`
+      : `You kept your ${start} points \u2014 nothing was won or lost.`;
+    els.roundPointsValue.textContent = prefersReducedMotion ? String(entry.scoreAfter) : "0";
+    els.roundModal.hidden = false;
+    animateCountUp(els.roundPointsValue, entry.scoreAfter, 800);
+  }
+
+  function hideRoundPopup() {
+    els.roundModal.hidden = true;
+  }
+
+  function holdResultThenContinue(entry, popupDelayMs, next) {
+    setTimeout(() => showRoundPopup(entry), popupDelayMs);
+    setTimeout(() => { hideRoundPopup(); next(); }, CONFIG.resultHoldMs);
+  }
+
+  function setNewGameBanner(visible) {
+    if (!els.newGameBanner) return;
+    els.newGameBanner.textContent = visible ? "Let\u2019s play a new game." : "";
+    els.newGameBanner.classList.toggle("is-visible", visible);
+  }
+
   // Returns a Promise that resolves once the flash has fully cleared.
-  function playGameTransition(gameNumber) {
+  // onCovered runs once the overlay fully covers the screen.
+  function playGameTransition(gameNumber, onCovered) {
     return new Promise((resolve) => {
       const overlay = els.gameTransitionOverlay;
       const textEl = els.gameTransitionText;
-      if (!overlay || !textEl) { resolve(); return; }
+      if (!overlay || !textEl) { if (onCovered) onCovered(); resolve(); return; }
 
       const inMs = CONFIG.gameTransitionSlideInMs;
       const holdMs = CONFIG.gameTransitionHoldMs;
@@ -614,6 +688,8 @@
         overlay.style.transition = `transform ${inMs}ms cubic-bezier(0.16, 1, 0.3, 1)`; // decelerate into center
         overlay.style.transform = "translateX(0%)";
       });
+
+      setTimeout(() => { if (onCovered) onCovered(); }, inMs + 60);
 
       setTimeout(() => {
         overlay.style.transition = `transform ${outMs}ms cubic-bezier(0.55, 0, 1, 0.45)`; // accelerate out
@@ -639,6 +715,7 @@
     const reactionTimeMs = Date.now() - state.readyTimestamp;
 
     state.isSpinning = true;
+    setNewGameBanner(false);
     els.spinButton.disabled = true;
     els.stopButton.disabled = true;
     setWheelVisible(true); // reveal the wheel the instant a spin is committed to
@@ -651,15 +728,16 @@
     await spinWheelToOutcome(outcome);
 
     const { scoreBefore, scoreAfter, penaltyApplied } = applyOutcomeToScore(outcome);
-    logSpin(outcome, scoreBefore, scoreAfter, penaltyApplied, reactionTimeMs);
+    const entry = logSpin(outcome, scoreBefore, scoreAfter, penaltyApplied, reactionTimeMs);
     escalatePenaltyAfterGame(); // penalty climbs every game, win or lose
 
-    renderGameHeading();
-    updateProgressUI(); // also refreshes the instruction card (rebuilds its DOM)
+    // The heading and instruction card stay on the game just played for the
+    // whole result hold; they only change once the next-game slide covers
+    // the screen (see prepareNextGame).
+    updateProgressBar();
 
     // Sweep only the box matching what actually happened — a quick trace
-    // around its border, fired fresh every spin. Guarded because the card
-    // has no color boxes left to target once "No games left" replaces it.
+    // around its border, fired fresh every spin.
     const sweepTarget = els.nextRoundCard.querySelector(
       outcome === "green" ? ".instruction-col-green" : ".instruction-col-red"
     );
@@ -672,31 +750,24 @@
       playRedSound();
     }
 
-    // Let the student see the landed result clearly for a moment, then the
-    // wheel hides again while they decide on the next spin.
-    setTimeout(() => setWheelVisible(false), 1100);
-
     state.isSpinning = false;
 
     const reachedMaxGames = state.gameCount >= CONFIG.maxGames;
     const triggerCheckpoint = outcome === "red" && state.redCount === 3 &&
       !state.checkpointShown && !reachedMaxGames;
+    if (triggerCheckpoint) state.checkpointShown = true;
 
-    if (triggerCheckpoint) {
-      // Spin button stays disabled until the student answers the checkpoint.
-      state.checkpointShown = true;
-      setTimeout(openCheckpointModal, 500); // brief pause so the shake/result is seen first
-    } else if (reachedMaxGames) {
-      // updateProgressUI() already disabled + relabeled the buttons, and the
-      // next-round card already reads "No games left — results coming up.",
-      // so no separate announcement is needed here.
-      setTimeout(() => {
+    // Hold the result (wheel still showing where it landed) with the
+    // game-result popup over it, then move on.
+    holdResultThenContinue(entry, 700, () => {
+      if (triggerCheckpoint) {
+        openCheckpointModal(); // spin stays disabled until the student answers
+      } else if (reachedMaxGames) {
         if (!els.resultsScreen.classList.contains("is-active")) endExperiment();
-      }, 1800);
-    } else {
-      // Let the result sink in, then flash into the next game.
-      setTimeout(() => { advanceToNextGame(); }, 1300);
-    }
+      } else {
+        advanceToNextGame();
+      }
+    });
   }
 
   /* ------------------------------ Stop / confirm flow ---------------------------- */
@@ -738,20 +809,20 @@
 
     state.gameCount += 1;
     state.keptCount += 1;
-    logKeptRound(reactionTimeMs);
+    const entry = logKeptRound(reactionTimeMs);
     escalatePenaltyAfterGame();
 
-    renderGameHeading();
-    updateProgressUI();
+    setNewGameBanner(false);
+    updateProgressBar();
 
     const reachedMaxGames = state.gameCount >= CONFIG.maxGames;
-    if (reachedMaxGames) {
-      setTimeout(() => {
+    holdResultThenContinue(entry, 0, () => {
+      if (reachedMaxGames) {
         if (!els.resultsScreen.classList.contains("is-active")) endExperiment();
-      }, 500);
-    } else {
-      advanceToNextGame();
-    }
+      } else {
+        advanceToNextGame();
+      }
+    });
   }
 
   /* --------------------------- 3rd-loss checkpoint flow --------------------------- *
@@ -820,11 +891,41 @@
 
   /* ---------------------------------- Ending / results ---------------------------- */
 
+  // Session end: the results are rendered and submitted straight away (the
+  // sheet submission is unchanged), but the student first sees the final
+  // points notification over the blurred game screen; "See my results"
+  // then reveals the results screen.
   function endExperiment() {
+    if (!els.finalModal.hidden) return;
     const totalDurationMs = Date.now() - state.experimentStartTime;
     renderResultsScreen(totalDurationMs);
-    showScreen(els.resultsScreen);
     submitSessionToTeacherSheet(els.resultsSubmitStatus);
+    openFinalModal();
+  }
+
+  // Points for the session: each game starts fresh at CONFIG.initialScore,
+  // so the total is the sum of every game's ending points (a kept game
+  // counts as the full starting amount).
+  function computeTotalPoints() {
+    return state.history.reduce((sum, entry) => sum + entry.scoreAfter, 0);
+  }
+
+  function openFinalModal() {
+    const total = computeTotalPoints();
+    const games = state.history.length;
+    els.finalPointsValue.textContent = prefersReducedMotion ? String(total) : "0";
+    els.finalCalc.textContent =
+      state.history.map((e) => e.scoreAfter).join(" + ") + ` = ${total}`;
+    els.finalSub.textContent =
+      `Total of your ${games} game${games === 1 ? "" : "s"} \u00b7 ${state.greenCount} green \u00b7 ${state.redCount} red \u00b7 ${state.keptCount} kept`;
+    els.finalModal.hidden = false;
+    els.finalContinueButton.focus();
+    setTimeout(() => animateCountUp(els.finalPointsValue, total, 1300), 350);
+  }
+
+  function handleFinalContinue() {
+    els.finalModal.hidden = true;
+    showScreen(els.resultsScreen);
   }
 
   function formatDuration(ms) {
@@ -1021,6 +1122,7 @@
   }
 
   function handleBegin() {
+    if (els.roundModal) els.roundModal.hidden = true;
     if (!isReadyToBegin()) {
       showIdentityError();
       els.identityCard.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -1053,9 +1155,8 @@
     renderExperimentReadouts();
     setWheelVisible(false);
     els.stopButton.textContent = `Keep my ${CONFIG.initialScore} points`;
-    if (els.decisionQuestion) {
-      els.decisionQuestion.textContent = `Would you like to spin the wheel, or keep your ${CONFIG.initialScore} points?`;
-    }
+    setDecisionPrompt();
+    setNewGameBanner(false);
     els.spinButton.textContent = "Spin the wheel";
     els.spinButton.disabled = false;
     els.stopButton.disabled = false;
@@ -1103,6 +1204,7 @@
       if (e.target === els.checkpointModal) handleCheckpointContinue();
     });
 
+    els.finalContinueButton.addEventListener("click", handleFinalContinue);
     els.restartButton.addEventListener("click", handleRestart);
 
     els.themeToggle.addEventListener("click", handleThemeToggle);

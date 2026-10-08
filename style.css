@@ -208,8 +208,8 @@ main { flex: 1; display: flex; justify-content: center; padding: clamp(1.1rem, 3
   flex-shrink: 0;
 }
 
-.pts-gain { color: var(--color-green-dark); font-weight: 700; }
-.pts-loss { color: var(--color-red-dark); font-weight: 700; }
+.pts-gain { color: var(--color-green-dark); font-weight: 700; white-space: nowrap; } /* keeps the +/− sign attached to its number */
+.pts-loss { color: var(--color-red-dark); font-weight: 700; white-space: nowrap; }
 
 .identity-card-wrap {
   max-width: 760px;
@@ -360,16 +360,16 @@ main { flex: 1; display: flex; justify-content: center; padding: clamp(1.1rem, 3
 }
 
 /* --------------------------- Game / MP heading ------------------------------ */
-.game-heading { text-align: center; margin-bottom: 1.1rem; }
+.game-heading { text-align: center; margin-bottom: 1.6rem; }
 .game-title {
   font-size: clamp(1.4rem, 5vw, 1.8rem);
   font-weight: 800;
   letter-spacing: -0.015em;
-  margin: 0 0 0.2em;
+  margin: 0 0 0.35em;
   color: var(--color-ink);
 }
 .game-mp {
-  font-size: 1rem;
+  font-size: var(--instruction-fs);
   font-weight: 500;
   letter-spacing: 0;
   color: var(--color-ink-soft);
@@ -418,22 +418,29 @@ main { flex: 1; display: flex; justify-content: center; padding: clamp(1.1rem, 3
  * big. Each outcome gets its own independent box (not a shared divided
  * card) so a quick colored line can trace its border right when that
  * outcome lands. */
+/* One shared size for the heading line, both "If the wheel lands on…" lines
+   and the equations, so they read as a single set. The experiment screen is
+   wider than the default so the larger text doesn't wrap into tall columns. */
+#experimentScreen {
+  --instruction-fs: clamp(1.3rem, 3.2vw, 1.8rem);
+  max-width: 820px;
+}
 .instruction-card {
   display: flex;
+  flex-direction: column; /* one box per row so each sentence stays on a single line */
   align-items: stretch;
-  justify-content: center;
-  gap: 1rem;
-  margin: 0 auto 0.9rem;
-  max-width: 680px;
+  gap: 0.85rem;
+  margin: 0 auto 1.6rem;
+  max-width: 760px;
 }
 .instruction-col {
   position: relative;
-  flex: 1;
+  flex: none;
   min-width: 0;
   text-align: center;
   background: var(--color-section-alt);
   border-radius: var(--radius-md);
-  padding: 1rem 1.25rem;
+  padding: 1.1rem 1.5rem 1.2rem;
   overflow: hidden; /* clips the sweep outline below to the box's rounded corners */
 }
 .instruction-col-green { --edge-color: var(--color-green); }
@@ -479,8 +486,8 @@ main { flex: 1; display: flex; justify-content: center; padding: clamp(1.1rem, 3
 
 .instruction-line {
   margin: 0;
-  font-size: clamp(0.74rem, 2.3vw, 0.88rem);
-  line-height: 1.5;
+  font-size: var(--instruction-fs);
+  line-height: 1.3;
   color: var(--color-ink);
   white-space: nowrap;
 }
@@ -496,10 +503,10 @@ main { flex: 1; display: flex; justify-content: center; padding: clamp(1.1rem, 3
 .dot-red { background: var(--color-red); }
 
 .instruction-value {
-  font-size: clamp(1.7rem, 6vw, 2.3rem);
+  font-size: var(--instruction-fs);
   font-weight: 800;
   letter-spacing: -0.02em;
-  margin: 0.15em 0 0;
+  margin: 0.4em 0 0;
   font-variant-numeric: tabular-nums;
 }
 
@@ -510,14 +517,37 @@ main { flex: 1; display: flex; justify-content: center; padding: clamp(1.1rem, 3
 }
 
 @media (max-width: 700px) {
-  .instruction-card { flex-direction: column; gap: 1rem; }
-  .instruction-line { white-space: normal; font-size: 0.88rem; }
+  .instruction-card { gap: 0.85rem; }
+  .instruction-line { white-space: normal; } /* small screens: allow wrapping */
 }
+
+.game-head-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  flex-wrap: wrap;
+  column-gap: 1rem;
+}
+.new-game-banner {
+  display: none;
+  margin: 0;
+  padding-left: 1rem;
+  border-left: 2px solid var(--color-border);
+  font-size: clamp(1.05rem, 3vw, 1.3rem);
+  font-weight: 700;
+  color: var(--color-accent);
+}
+.new-game-banner.is-visible { display: block; animation: banner-in 350ms var(--ease) both; }
+@keyframes banner-in { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: none; } }
+@media (max-width: 480px) {
+  .new-game-banner { padding-left: 0; border-left: 0; }
+}
+
 
 .decision-question {
   font-weight: 600;
-  font-size: 0.95rem;
-  margin: 0 0 0.9rem;
+  font-size: 1.05rem;
+  margin: 0 0 1.1rem;
   color: var(--color-ink);
   text-align: center;
 }
@@ -729,7 +759,7 @@ main { flex: 1; display: flex; justify-content: center; padding: clamp(1.1rem, 3
   .welcome-logo { height: 38px; }
   .wheel-stage { width: min(48vw, 190px); }
   .wheel-stage-solo { width: min(78vw, 300px); }
-  .instruction-value { font-size: clamp(1.7rem, 10vw, 2.1rem); }
+  #experimentScreen { --instruction-fs: clamp(1.4rem, 7vw, 1.8rem); }
   .screen { scroll-margin-top: 60px; }
 }
 
@@ -737,3 +767,93 @@ main { flex: 1; display: flex; justify-content: center; padding: clamp(1.1rem, 3
   .controls { flex-direction: row; justify-content: center; }
   .controls .btn-large { width: auto; min-width: 240px; }
 }
+/* ----------------------- Final points notification ----------------------- */
+.final-overlay {
+  background: rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 60;
+}
+.final-modal {
+  max-width: 400px;
+  text-align: center;
+  padding: 2rem 1.75rem 1.75rem;
+  animation: final-in 420ms var(--ease) both;
+}
+@keyframes final-in {
+  from { opacity: 0; transform: translateY(-18px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+.final-badge {
+  width: 52px; height: 52px;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--color-green);
+  color: #fff;
+  font-size: 1.6rem; font-weight: 700;
+  animation: final-pop 520ms var(--ease) 150ms both;
+}
+@keyframes final-pop {
+  from { opacity: 0; transform: scale(0.5); }
+  to   { opacity: 1; transform: none; }
+}
+.final-modal .final-eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+.final-modal .final-points {
+  margin: 0 0 0.4rem;
+  font-size: clamp(1.5rem, 6vw, 1.9rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+.final-points-number {
+  display: inline-block;
+  min-width: 1.5ch;
+  color: var(--color-accent);
+  font-variant-numeric: tabular-nums;
+}
+.final-modal .final-sub {
+  margin: 0 0 1.5rem;
+  font-size: 0.88rem;
+  color: var(--color-ink-soft);
+}
+@media (prefers-reduced-motion: reduce) {
+  .final-modal, .final-badge { animation: none; }
+}
+
+/* Per-game result popup variants */
+.final-badge.is-red { background: var(--color-red); }
+.final-badge.is-kept { background: var(--color-ink-soft); }
+.round-modal .final-sub { margin-bottom: 0; }
+
+/* Wide screens: green and red boxes sit side by side in one row, each
+   sentence (including its +/− value) on a single line. */
+@media (min-width: 1100px) {
+  #experimentScreen { max-width: 1100px; --instruction-fs: 1.2rem; }
+  .instruction-card { flex-direction: row; max-width: 1040px; }
+  .instruction-col { flex: 1; padding: 1.1rem 1rem 1.2rem; }
+}
+
+/* Calculation box on the popups */
+.final-modal .final-calc {
+  margin: 0.5rem 0 0.9rem;
+  padding: 0.7rem 1rem;
+  background: var(--color-section-alt);
+  border-radius: var(--radius-md);
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink);
+}
+.final-modal .final-calc.gain { color: var(--color-green-dark); }
+.final-modal .final-calc.loss { color: var(--color-red-dark); }
+#finalCalc { font-size: 1.15rem; font-weight: 700; line-height: 1.4; }
+.round-modal .final-sub { line-height: 1.45; }
