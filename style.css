@@ -857,3 +857,6 @@ main { flex: 1; display: flex; justify-content: center; padding: clamp(1.1rem, 3
 .final-modal .final-calc.loss { color: var(--color-red-dark); }
 #finalCalc { font-size: 1.15rem; font-weight: 700; line-height: 1.4; }
 .round-modal .final-sub { line-height: 1.45; }
+
+/* Results: backup download buttons */
+.export-note { margin: 0.6rem 0 0; font-size: 0.8rem; color: var(--color-ink-soft); }

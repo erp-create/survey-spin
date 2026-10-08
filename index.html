@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=20261009">
 <link rel="icon" type="image/png" href="akal-academy-logo.png">
 </head>
 <body>
@@ -99,7 +99,7 @@
                 <option value="" disabled selected>Select academy</option>
                 <option value="AA Ajitsar Ratia">AA Ajitsar Ratia</option>
                 <option value="AA Bagha">AA Bagha</option>
-                <option value="AA Bagha">AA Baru Sahib</option>
+                <option value="AA Baru Sahib">AA Baru Sahib</option>
                 <option value="AA Bakarwal">AA Bakarwal</option>
                 <option value="AA Balbehra">AA Balbehra</option>
                 <option value="AA Bangi Nihal Singh Wala">AA Bangi Nihal Singh Wala</option>
@@ -328,8 +328,11 @@
         </div>
 
         <div class="export-controls">
+          <button id="downloadCsvButton" class="btn btn-secondary" type="button">Download my results (CSV)</button>
+          <button id="downloadJsonButton" class="btn btn-secondary" type="button">Download (JSON)</button>
           <button id="restartButton" class="btn btn-ghost" type="button">Start a new session</button>
         </div>
+        <p class="export-note">Keep this file as a backup in case your results don't reach the class sheet.</p>
         <p class="submit-status" id="resultsSubmitStatus" aria-live="polite"></p>
       </div>
     </section>
@@ -406,6 +409,6 @@
   </div>
 </div>
 
-<script src="script.js"></script>
+<script src="script.js?v=20261009"></script>
 </body>
 </html>

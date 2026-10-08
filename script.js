@@ -297,6 +297,7 @@
       scoreAfter: scoreAfter,
       pointsDelta: pointsDelta,
       lossPenaltyApplied: penaltyApplied,
+      penaltyOffered: state.nextRedPenalty, // the red penalty that was on the table for this game
       reactionTimeMs: reactionTimeMs,
       totalElapsedMs: now - state.experimentStartTime
     };
@@ -317,6 +318,7 @@
       scoreAfter: CONFIG.initialScore,
       pointsDelta: 0,
       lossPenaltyApplied: 0,
+      penaltyOffered: state.nextRedPenalty, // the penalty the student chose NOT to risk
       reactionTimeMs: reactionTimeMs,
       totalElapsedMs: now - state.experimentStartTime
     };
@@ -425,6 +427,8 @@
     els.debriefBox = document.getElementById("debriefBox");
     els.historyTableBody = document.getElementById("historyTableBody");
     els.restartButton = document.getElementById("restartButton");
+    els.downloadCsvButton = document.getElementById("downloadCsvButton");
+    els.downloadJsonButton = document.getElementById("downloadJsonButton");
     els.resultsSubmitStatus = document.getElementById("resultsSubmitStatus");
 
     els.checkpointModal = document.getElementById("checkpointModal");
@@ -1027,6 +1031,56 @@
     };
   }
 
+  /* ---- Local backup download (does not touch the sheet submission) ---- */
+
+  // Neutralises spreadsheet formula injection and quotes values for CSV.
+  function csvCell(value) {
+    let text = value === null || value === undefined ? "" : String(value);
+    // Only free text (e.g. a typed name) needs the guard — never real numbers like -8.
+    if (typeof value === "string" && /^[=+\-@\t\r]/.test(text)) text = "'" + text;
+    return /[",\n\r]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
+  }
+
+  function buildCsv() {
+    const columns = ["studentName", "studentClass", "studentSection", "studentAcademy",
+      "game", "result", "scoreBefore", "scoreAfter", "pointsDelta", "penaltyOffered",
+      "lossPenaltyApplied", "reactionTimeMs", "timestamp", "totalElapsedMs"];
+    const rows = state.history.map((e) => [
+      state.studentName, state.studentClass, state.studentSection, state.studentAcademy,
+      e.spinNumber, e.wheelResult, e.scoreBefore, e.scoreAfter, e.pointsDelta, e.penaltyOffered,
+      e.lossPenaltyApplied, e.reactionTimeMs, e.timestamp, e.totalElapsedMs
+    ]);
+    return [columns].concat(rows).map((r) => r.map(csvCell).join(",")).join("\r\n");
+  }
+
+  function backupFileName(extension) {
+    const safe = (text) => String(text).trim().replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "");
+    const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "");
+    return `survey-spin_${safe(state.studentName)}_${safe(state.studentClass)}${safe(state.studentSection)}_${stamp}.${extension}`;
+  }
+
+  function triggerDownload(content, mimeType, fileName) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function downloadCsv() {
+    // BOM so Excel opens non-English names correctly.
+    triggerDownload("\ufeff" + buildCsv(), "text/csv;charset=utf-8", backupFileName("csv"));
+  }
+
+  function downloadJson() {
+    const payload = { summary: buildExportSummary(), history: state.history };
+    triggerDownload(JSON.stringify(payload, null, 2), "application/json", backupFileName("json"));
+  }
+
   // Fire-and-forget POST of this session (summary + full spin history) to the
   // teacher's Google Sheet via the Apps Script Web App URL in CONFIG. Uses
   // mode:"no-cors" — the standard, reliable way to call an Apps Script Web
@@ -1205,6 +1259,8 @@
     });
 
     els.finalContinueButton.addEventListener("click", handleFinalContinue);
+    els.downloadCsvButton.addEventListener("click", downloadCsv);
+    els.downloadJsonButton.addEventListener("click", downloadJson);
     els.restartButton.addEventListener("click", handleRestart);
 
     els.themeToggle.addEventListener("click", handleThemeToggle);
